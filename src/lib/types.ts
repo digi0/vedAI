@@ -46,3 +46,38 @@ export type EmergencyProfile = {
   insurance: { provider: string; policyNumber: string };
   primaryDoctor: { name: string; phone: string };
 };
+
+export type MedForm = "tablet" | "capsule" | "inhaler" | "injection" | "topical";
+
+export type PharmacyItem = {
+  id: string;
+  name: string;
+  dose: string;
+  form: MedForm;
+  packSize: string;
+  price: number; // USD per fill
+  refillsLeft: number;
+  prescribedBy: string;
+  rxRecordId?: string; // links to a MedicalRecord of type "prescription"
+  note?: string;
+};
+
+export type DeliveryMethod = "pickup" | "standard" | "express";
+
+export type OrderStatus = "processing" | "shipped" | "delivered";
+
+export type OrderItem = {
+  name: string;
+  dose: string;
+  qty: number;
+  price: number;
+};
+
+export type MedicationOrder = {
+  id: string;
+  items: OrderItem[];
+  delivery: DeliveryMethod;
+  total: number;
+  placedAt: string; // ISO
+  status: OrderStatus;
+};

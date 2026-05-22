@@ -45,6 +45,12 @@ export default function Overview() {
           >
             Upload record
           </Link>
+          <Link
+            href="/pharmacy"
+            className="rounded-md border border-[var(--color-border-strong)] bg-white px-4 py-2 text-sm"
+          >
+            Order medication
+          </Link>
         </div>
       </section>
 

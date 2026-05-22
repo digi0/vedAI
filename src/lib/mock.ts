@@ -3,6 +3,9 @@ import type {
   MetricSeries,
   Insight,
   EmergencyProfile,
+  PharmacyItem,
+  DeliveryMethod,
+  MedicationOrder,
 } from "./types";
 
 export const profile: EmergencyProfile = {
@@ -211,5 +214,64 @@ export const insights: Insight[] = [
     detail:
       "Down 3.2 kg over 6 months — steady, sustainable rate. Likely contributing to BP and glucose improvements.",
     suggestion: "Maintain current pace. No intervention needed.",
+  },
+];
+
+export const pharmacyItems: PharmacyItem[] = [
+  {
+    id: "m1",
+    name: "Lisinopril",
+    dose: "10mg",
+    form: "tablet",
+    packSize: "90 tablets / fill",
+    price: 12,
+    refillsLeft: 3,
+    prescribedBy: "Dr. Anita Rao",
+    rxRecordId: "r2",
+    note: "Daily, morning — for borderline hypertension.",
+  },
+  {
+    id: "m2",
+    name: "Albuterol",
+    dose: "90mcg",
+    form: "inhaler",
+    packSize: "1 inhaler · 200 doses",
+    price: 28,
+    refillsLeft: 2,
+    prescribedBy: "Dr. Anita Rao",
+    note: "As needed — rescue inhaler for mild asthma.",
+  },
+  {
+    id: "m3",
+    name: "Atorvastatin",
+    dose: "20mg",
+    form: "tablet",
+    packSize: "30 tablets / fill",
+    price: 15,
+    refillsLeft: 0,
+    prescribedBy: "Dr. Anita Rao",
+    note: "Refill needs doctor re-authorization — LDL trending high.",
+  },
+];
+
+export const deliveryOptions: {
+  key: DeliveryMethod;
+  label: string;
+  eta: string;
+  fee: number;
+}[] = [
+  { key: "pickup", label: "Pharmacy pickup", eta: "Ready in ~2 hrs", fee: 0 },
+  { key: "standard", label: "Standard delivery", eta: "2–3 business days", fee: 4.99 },
+  { key: "express", label: "Express delivery", eta: "Next business day", fee: 12.99 },
+];
+
+export const medicationOrders: MedicationOrder[] = [
+  {
+    id: "ORD-20260418-7741",
+    items: [{ name: "Lisinopril", dose: "10mg", qty: 1, price: 12 }],
+    delivery: "standard",
+    total: 16.99,
+    placedAt: "2026-04-18",
+    status: "delivered",
   },
 ];
