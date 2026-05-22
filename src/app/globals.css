@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f4f8;
+  --color-border: #e4e8ee;
+  --color-border-strong: #cdd4dd;
+  --color-fg: #0f1720;
+  --color-fg-muted: #5a6573;
+  --color-fg-dim: #8b94a3;
+  --color-brand: #1f7a6b;
+  --color-brand-soft: #e5f4f1;
+  --color-accent: #2563eb;
+  --color-warn: #b8761f;
+  --color-warn-soft: #fdf2e0;
+  --color-alert: #b91c1c;
+  --color-alert-soft: #fde8e8;
+  --color-ok: #15803d;
+  --color-ok-soft: #e7f6ec;
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* subtle focus ring */
+*:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
