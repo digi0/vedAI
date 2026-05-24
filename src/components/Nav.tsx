@@ -27,7 +27,7 @@ export default function Nav() {
               />
             </svg>
           </span>
-          <span className="font-display text-xl">MedVault</span>
+          <span className="font-display text-xl">Ved AI</span>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           {links.map((l) => (
@@ -40,7 +40,7 @@ export default function Nav() {
             </Link>
           ))}
           <Link
-            href="/share/demo-token-abc123"
+            href="/share"
             className="ml-2 rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-sm text-white transition hover:bg-[var(--color-brand)]/90"
           >
             Share with doctor

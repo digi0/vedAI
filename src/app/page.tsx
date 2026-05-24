@@ -2,22 +2,30 @@ import Link from "next/link";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import MetricChart from "@/components/MetricChart";
 import RecordItem from "@/components/RecordItem";
-import { records, metrics, insights, profile } from "@/lib/mock";
+import { listRecords, listMetrics, getProfile } from "@/lib/db";
+import { insights } from "@/lib/mock"; // insights still mocked for now
 
-export default function Overview() {
-  const recentRecords = [...records]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 3);
+export const dynamic = "force-dynamic";
+
+export default async function Overview() {
+  const [records, metrics, profile] = await Promise.all([
+    listRecords(),
+    listMetrics(),
+    getProfile(),
+  ]);
+
+  const recentRecords = records.slice(0, 3);
   const featuredMetrics = metrics.filter((m) =>
     ["bp_sys", "weight", "glucose", "sleep_hrs"].includes(m.key),
   );
   const topInsights = insights.slice(0, 2);
+  const firstName = (profile?.name ?? "there").split(" ")[0];
 
   return (
     <div className="space-y-10">
       <section>
         <div className="font-display text-3xl text-[var(--color-fg-muted)] italic">
-          Hello, {profile.name.split(" ")[0]}.
+          Hello, {firstName}.
         </div>
         <h1 className="font-display text-4xl sm:text-5xl">
           Your health, in one place.
@@ -28,7 +36,7 @@ export default function Overview() {
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
-            href="/share/demo-token-abc123"
+            href="/share"
             className="rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white"
           >
             Share with doctor
@@ -89,9 +97,15 @@ export default function Overview() {
             }
           />
           <div className="space-y-3">
-            {recentRecords.map((r) => (
-              <RecordItem key={r.id} record={r} />
-            ))}
+            {recentRecords.length === 0 ? (
+              <Card>
+                <p className="text-sm text-[var(--color-fg-muted)]">
+                  No records yet. Upload your first one from the Records page.
+                </p>
+              </Card>
+            ) : (
+              recentRecords.map((r) => <RecordItem key={r.id} record={r} />)
+            )}
           </div>
         </div>
         <div>

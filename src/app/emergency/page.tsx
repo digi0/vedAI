@@ -1,15 +1,30 @@
 import { Card, SectionTitle, Badge } from "@/components/Card";
-import { profile } from "@/lib/mock";
+import { getProfile } from "@/lib/db";
 
-export default function Emergency() {
+export const dynamic = "force-dynamic";
+
+export default async function Emergency() {
+  const profile = await getProfile();
+
+  if (!profile) {
+    return (
+      <div className="rounded-lg border border-dashed border-[var(--color-border-strong)] p-10 text-center text-[var(--color-fg-muted)]">
+        No emergency profile yet.
+      </div>
+    );
+  }
+
+  const age = Math.floor(
+    (Date.now() - new Date(profile.dob).getTime()) /
+      (365.25 * 24 * 60 * 60 * 1000),
+  );
+
   return (
     <div className="space-y-6">
       <SectionTitle
         eyebrow="In an emergency"
         title="Emergency card"
-        action={
-          <Badge tone="alert">⚠ Critical info</Badge>
-        }
+        action={<Badge tone="alert">⚠ Critical info</Badge>}
       />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
         The one page any first-responder or new doctor needs. Pin to your lock
@@ -24,12 +39,7 @@ export default function Emergency() {
             </div>
             <div className="font-display text-3xl">{profile.name}</div>
             <div className="mt-1 text-sm text-[var(--color-fg-muted)]">
-              DOB {profile.dob} ·{" "}
-              {Math.floor(
-                (Date.now() - new Date(profile.dob).getTime()) /
-                  (365.25 * 24 * 60 * 60 * 1000),
-              )}{" "}
-              y/o
+              DOB {profile.dob} · {age} y/o
             </div>
           </div>
           <div className="text-right">
@@ -47,11 +57,17 @@ export default function Emergency() {
         <Card>
           <h3 className="mb-3 font-medium">Allergies</h3>
           <div className="flex flex-wrap gap-2">
-            {profile.allergies.map((a) => (
-              <Badge key={a} tone="alert">
-                {a}
-              </Badge>
-            ))}
+            {profile.allergies.length === 0 ? (
+              <span className="text-sm text-[var(--color-fg-muted)]">
+                None on file.
+              </span>
+            ) : (
+              profile.allergies.map((a) => (
+                <Badge key={a} tone="alert">
+                  {a}
+                </Badge>
+              ))
+            )}
           </div>
         </Card>
 

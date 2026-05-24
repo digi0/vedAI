@@ -1,22 +1,22 @@
 import { SectionTitle } from "@/components/Card";
 import MetricChart from "@/components/MetricChart";
-import { metrics } from "@/lib/mock";
+import LogMetricForm from "@/components/LogMetricForm";
+import { listMetrics } from "@/lib/db";
 
-export default function Metrics() {
+export const dynamic = "force-dynamic";
+
+export default async function Metrics() {
+  const metrics = await listMetrics();
+
   return (
     <div className="space-y-6">
       <SectionTitle
         eyebrow="Trends"
         title="Health metrics"
-        action={
-          <button className="rounded-md border border-[var(--color-border-strong)] bg-white px-3 py-1.5 text-sm">
-            Log new reading
-          </button>
-        }
+        action={<LogMetricForm />}
       />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        Logged readings over the last six months. Green band shows your healthy
-        target range.
+        Logged readings over time. Green band shows your healthy target range.
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {metrics.map((m) => (

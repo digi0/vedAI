@@ -19,9 +19,9 @@ const display = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "MedVault — your health, in one place",
+  title: "Ved AI — your health, in one place",
   description:
-    "A personal medical vault. Records, metrics, insights, and a one-tap share for emergencies.",
+    "Your personal health intelligence. Records, metrics, insights, and a one-tap share for emergencies.",
 };
 
 export default function RootLayout({
