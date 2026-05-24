@@ -10,7 +10,7 @@
 
 import { revalidatePath } from "next/cache";
 import { serverAdmin, DEMO_USER_ID } from "./supabase";
-import type { RecordType } from "./types";
+import type { RecordType, DeliveryMethod, OrderItem } from "./types";
 
 // ---------- records ----------
 
@@ -99,6 +99,72 @@ export async function logMetric(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/metrics");
   revalidatePath("/");
+}
+
+// ---------- pharmacy ----------
+
+const DELIVERY_FEE: Record<DeliveryMethod, number> = {
+  pickup: 0,
+  standard: 4.99,
+  express: 12.99,
+};
+
+export async function placeOrder(input: {
+  delivery: DeliveryMethod;
+  items: OrderItem[];
+}): Promise<{ id: string }> {
+  if (input.items.length === 0) throw new Error("Cart is empty.");
+
+  const subtotal = input.items.reduce((s, i) => s + i.price * i.qty, 0);
+  const total = +(subtotal + DELIVERY_FEE[input.delivery]).toFixed(2);
+
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const id = `ORD-${stamp}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const sb = serverAdmin();
+  const { error } = await sb.from("medication_orders").insert({
+    id,
+    user_id: DEMO_USER_ID,
+    delivery: input.delivery,
+    total,
+    status: "processing",
+    items: input.items,
+  });
+  if (error) throw new Error(error.message);
+
+  // Decrement refills on the corresponding pharmacy_items.
+  // Best-effort: match by (name, dose) for the demo user.
+  for (const i of input.items) {
+    const { data: rows } = await sb
+      .from("pharmacy_items")
+      .select("id, refills_left")
+      .eq("user_id", DEMO_USER_ID)
+      .eq("name", i.name)
+      .eq("dose", i.dose)
+      .limit(1);
+    const row = rows?.[0];
+    if (row && row.refills_left > 0) {
+      await sb
+        .from("pharmacy_items")
+        .update({ refills_left: Math.max(0, row.refills_left - i.qty) })
+        .eq("id", row.id);
+    }
+  }
+
+  revalidatePath("/pharmacy");
+  return { id };
+}
+
+export async function requestRefillAuth(itemId: string) {
+  // Demo stub — in production this would notify the prescribing doctor.
+  // For now we just touch the row's note so the UI can show "requested".
+  const sb = serverAdmin();
+  await sb
+    .from("pharmacy_items")
+    .update({ note: "Refill auth requested — pending doctor approval." })
+    .eq("id", itemId)
+    .eq("user_id", DEMO_USER_ID);
+  revalidatePath("/pharmacy");
 }
 
 // ---------- share tokens ----------

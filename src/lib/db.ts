@@ -16,6 +16,11 @@ import type {
   MetricSeries,
   EmergencyProfile,
   RecordType,
+  PharmacyItem,
+  MedicationOrder,
+  MedForm,
+  DeliveryMethod,
+  OrderStatus,
 } from "./types";
 
 // ---------- profile ----------
@@ -140,6 +145,54 @@ export async function listMetrics(
     unit: METRIC_META[k].unit,
     healthyRange: METRIC_META[k].healthyRange,
     points: grouped.get(k) ?? [],
+  }));
+}
+
+// ---------- pharmacy ----------
+
+export async function listPharmacyItems(
+  userId: string = DEMO_USER_ID,
+): Promise<PharmacyItem[]> {
+  const sb = serverAdmin();
+  const { data, error } = await sb
+    .from("pharmacy_items")
+    .select("*")
+    .eq("user_id", userId)
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    dose: r.dose,
+    form: r.form as MedForm,
+    packSize: r.pack_size,
+    price: Number(r.price),
+    refillsLeft: r.refills_left,
+    prescribedBy: r.prescribed_by ?? "",
+    rxRecordId: r.rx_record_id ?? undefined,
+    note: r.note ?? undefined,
+  }));
+}
+
+export async function listMedicationOrders(
+  userId: string = DEMO_USER_ID,
+): Promise<MedicationOrder[]> {
+  const sb = serverAdmin();
+  const { data, error } = await sb
+    .from("medication_orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("placed_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    items: r.items,
+    delivery: r.delivery as DeliveryMethod,
+    total: Number(r.total),
+    placedAt: r.placed_at,
+    status: r.status as OrderStatus,
   }));
 }
 
