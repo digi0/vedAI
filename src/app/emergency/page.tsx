@@ -1,4 +1,5 @@
 import { Card, SectionTitle, Badge } from "@/components/Card";
+import PrintButton from "@/components/PrintButton";
 import { getProfile } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,12 @@ export default async function Emergency() {
       <SectionTitle
         eyebrow="In an emergency"
         title="Emergency card"
-        action={<Badge tone="alert">⚠ Critical info</Badge>}
+        action={
+          <div className="flex items-center gap-2">
+            <Badge tone="alert">⚠ Critical info</Badge>
+            <PrintButton />
+          </div>
+        }
       />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
         The one page any first-responder or new doctor needs. Pin to your lock

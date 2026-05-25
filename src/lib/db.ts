@@ -172,6 +172,7 @@ export async function listPharmacyItems(
     prescribedBy: r.prescribed_by ?? "",
     rxRecordId: r.rx_record_id ?? undefined,
     note: r.note ?? undefined,
+    allergyClass: r.allergy_class ?? undefined,
   }));
 }
 

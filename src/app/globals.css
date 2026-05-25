@@ -40,3 +40,25 @@ body {
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* print: emergency card / records as a clean, single-page document */
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+  header,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  a[href]:after {
+    content: "";
+  }
+  .bg-gradient-to-br {
+    background: #ffffff !important;
+  }
+}
