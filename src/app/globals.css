@@ -1,23 +1,34 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #f7f8fa;
+  /* ── Foundation ── Very soft warm white. Premium, calm, eye-friendly.
+     One brand color, no decorative second accent — restraint reads as
+     trustworthy in health contexts. */
+  --color-bg: #fbfaf7;
   --color-surface: #ffffff;
-  --color-surface-2: #f1f4f8;
-  --color-border: #e4e8ee;
-  --color-border-strong: #cdd4dd;
-  --color-fg: #0f1720;
-  --color-fg-muted: #5a6573;
-  --color-fg-dim: #8b94a3;
-  --color-brand: #1f7a6b;
-  --color-brand-soft: #e5f4f1;
-  --color-accent: #2563eb;
-  --color-warn: #b8761f;
-  --color-warn-soft: #fdf2e0;
+  --color-surface-2: #f4f2ec;
+  --color-border: #ebe6dc;
+  --color-border-strong: #d6d0c2;
+
+  /* ── Text ── slight cool undertone for crispness on the warm bg. */
+  --color-fg: #1a1f2e;
+  --color-fg-muted: #5a6577;
+  --color-fg-dim: #8d95a3;
+
+  /* ── Brand: deep teal ── the single primary color. Used sparingly
+     and confidently — buttons, key accents, charts. */
+  --color-brand: #0d6e62;
+  --color-brand-strong: #084a42;
+  --color-brand-soft: #dfeeea;
+  --color-brand-tint: #eef6f3;
+
+  /* ── Severity ── always paired with text/icons, never color-only. */
+  --color-ok: #166534;
+  --color-ok-soft: #dcf0e2;
+  --color-warn: #92510b;
+  --color-warn-soft: #fce9c8;
   --color-alert: #b91c1c;
-  --color-alert-soft: #fde8e8;
-  --color-ok: #15803d;
-  --color-ok-soft: #e7f6ec;
+  --color-alert-soft: #fde4e4;
 
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
@@ -31,17 +42,83 @@ body {
 
 body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.6;
 }
 
-/* subtle focus ring */
+.font-display {
+  letter-spacing: -0.018em;
+}
+
 *:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
-/* print: emergency card / records as a clean, single-page document */
+button,
+a {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 200ms ease;
+}
+
+/* Subtle card lift — used on click-targets only. The brand-tinted shadow
+   gives a premium "on-brand glow" without any color noise. */
+.card-interactive {
+  cursor: pointer;
+}
+.card-interactive:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 28px -10px rgba(13, 110, 98, 0.14),
+    0 2px 6px -2px rgba(15, 23, 32, 0.05);
+}
+
+/* Chart line draws in on mount — a single quiet motion that signals
+   "this is live data." */
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.draw-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw-line 1.1s ease-out forwards;
+}
+
+/* Stat tiles fade up in a tight stagger as the page settles. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  opacity: 0;
+  animation: fade-up 480ms ease-out forwards;
+}
+.fade-up-1 {
+  animation-delay: 80ms;
+}
+.fade-up-2 {
+  animation-delay: 160ms;
+}
+.fade-up-3 {
+  animation-delay: 240ms;
+}
+
+/* Print: emergency card / records as a clean, single-page document */
 @media print {
   html,
   body {
@@ -58,7 +135,7 @@ body {
   a[href]:after {
     content: "";
   }
-  .bg-gradient-to-br {
+  [class*="bg-gradient"] {
     background: #ffffff !important;
   }
 }

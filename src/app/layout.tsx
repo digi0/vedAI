@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body className="min-h-screen">
         <Nav />
-        <main className="mx-auto max-w-6xl px-5 py-8 sm:py-10">{children}</main>
+        <main className="mx-auto max-w-6xl px-5 py-10 sm:py-14">{children}</main>
       </body>
     </html>
   );

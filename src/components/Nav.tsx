@@ -11,7 +11,7 @@ const links = [
 
 export default function Nav() {
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
         <Link href="/" className="flex items-center gap-2">
           <span
@@ -34,14 +34,14 @@ export default function Nav() {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-md px-3 py-1.5 text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+              className="rounded-md px-3 py-1.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
             >
               {l.label}
             </Link>
           ))}
           <Link
             href="/share"
-            className="ml-2 rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-sm text-white transition hover:bg-[var(--color-brand)]/90"
+            className="ml-2 rounded-md bg-[var(--color-brand)] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
           >
             Share with doctor
           </Link>
