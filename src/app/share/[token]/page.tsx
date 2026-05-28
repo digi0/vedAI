@@ -7,8 +7,8 @@ import {
   getProfile,
   listRecords,
   listMetrics,
+  listInsights,
 } from "@/lib/db";
-import { insights } from "@/lib/mock";
 
 export const dynamic = "force-dynamic";
 
@@ -47,10 +47,11 @@ export default async function DoctorShare({
   }
 
   // Fetch the shared user's data — uses service_role, gated only by the token.
-  const [profile, records, metrics] = await Promise.all([
+  const [profile, records, metrics, insights] = await Promise.all([
     getProfile(share.userId),
     listRecords(share.userId),
     listMetrics(share.userId),
+    listInsights(share.userId),
   ]);
 
   // best-effort view counter — don't block render

@@ -2,16 +2,16 @@ import Link from "next/link";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import MetricChart from "@/components/MetricChart";
 import RecordItem from "@/components/RecordItem";
-import { listRecords, listMetrics, getProfile } from "@/lib/db";
-import { insights } from "@/lib/mock"; // insights still mocked for now
+import { listRecords, listMetrics, getProfile, listInsights } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function Overview() {
-  const [records, metrics, profile] = await Promise.all([
+  const [records, metrics, profile, insights] = await Promise.all([
     listRecords(),
     listMetrics(),
     getProfile(),
+    listInsights(),
   ]);
 
   const recentRecords = records.slice(0, 3);

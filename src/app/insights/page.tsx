@@ -1,17 +1,34 @@
 import { Card, SectionTitle, Badge } from "@/components/Card";
-import { insights } from "@/lib/mock";
+import { listInsights } from "@/lib/db";
+import RegenerateInsightsButton from "@/components/RegenerateInsightsButton";
 
 const toneOf = (sev: string) =>
   sev === "alert" ? "alert" : sev === "watch" ? "warn" : "ok";
 
-export default function Insights() {
+export const dynamic = "force-dynamic";
+
+export default async function Insights() {
+  const insights = await listInsights();
   return (
     <div className="space-y-6">
-      <SectionTitle eyebrow="What we noticed" title="Insights" />
+      <SectionTitle
+        eyebrow="What we noticed"
+        title="Insights"
+        action={<RegenerateInsightsButton />}
+      />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        Patterns drawn from your records and metrics. These are signals, not
-        diagnoses — always discuss with your doctor.
+        Patterns drawn from your records and metrics by a local LLM (Ollama).
+        These are signals, not diagnoses — always discuss with your doctor.
       </p>
+      {insights.length === 0 ? (
+        <Card>
+          <p className="text-sm text-[var(--color-fg-muted)]">
+            No insights yet. Upload a record or log some metrics, then click
+            <strong> Regenerate </strong> above. The model reads your
+            structured data and writes the insights you see here.
+          </p>
+        </Card>
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         {insights.map((i) => (
           <Card key={i.id}>

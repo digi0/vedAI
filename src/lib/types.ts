@@ -47,6 +47,8 @@ export type EmergencyProfile = {
   primaryDoctor: { name: string; phone: string };
 };
 
+// Parsed-document types are imported from `medical-parser` directly.
+
 export type MedForm = "tablet" | "capsule" | "inhaler" | "injection" | "topical";
 
 export type PharmacyItem = {

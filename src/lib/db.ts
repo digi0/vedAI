@@ -148,6 +148,38 @@ export async function listMetrics(
   }));
 }
 
+// ---------- insights ----------
+
+export type Insight = {
+  id: string;
+  severity: "info" | "watch" | "alert";
+  title: string;
+  detail: string;
+  suggestion: string;
+  generatedAt: string;
+};
+
+export async function listInsights(
+  userId: string = DEMO_USER_ID,
+): Promise<Insight[]> {
+  const sb = serverAdmin();
+  const { data, error } = await sb
+    .from("insights")
+    .select("*")
+    .eq("user_id", userId)
+    .order("generated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    severity: r.severity as Insight["severity"],
+    title: r.title,
+    detail: r.detail,
+    suggestion: r.suggestion,
+    generatedAt: r.generated_at,
+  }));
+}
+
 // ---------- pharmacy ----------
 
 export async function listPharmacyItems(

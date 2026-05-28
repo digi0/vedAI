@@ -5,3 +5,6 @@ out
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# Local test documents (not committed)
+test-docs/

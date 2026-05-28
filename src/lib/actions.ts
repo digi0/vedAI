@@ -9,7 +9,13 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { parsePdf, type ParsedDocument } from "medical-parser";
 import { serverAdmin, DEMO_USER_ID } from "./supabase";
+import { getLLM, type PatientContext } from "./llm";
+import {
+  getProfile,
+  listMetrics,
+} from "./db";
 import type { RecordType, DeliveryMethod, OrderItem } from "./types";
 
 // ---------- records ----------
@@ -42,8 +48,12 @@ export async function createRecord(input: {
 }
 
 /**
- * Upload a record file to storage. Called from the client via a FormData
- * action. Stores under <DEMO_USER_ID>/<uuid>.<ext>.
+ * Upload a record file, parse it with medical-parser, and persist both
+ * the file (Storage) and the structured fields (records.parsed_data).
+ *
+ * If parsing succeeds and the user's profile is empty, populate it from
+ * the parsed patient info — handy for the demo so a single upload also
+ * boots the emergency card. We DO NOT overwrite an existing profile.
  */
 export async function uploadRecordFile(form: FormData) {
   const file = form.get("file");
@@ -55,28 +65,87 @@ export async function uploadRecordFile(form: FormData) {
   const ext = file.name.split(".").pop() ?? "bin";
   const path = `${DEMO_USER_ID}/${crypto.randomUUID()}.${ext}`;
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const rawBytes = await file.arrayBuffer();
+  const bytes = new Uint8Array(rawBytes);
+
   const { error: upErr } = await sb.storage
     .from("record-files")
     .upload(path, bytes, { contentType: file.type || undefined });
-
   if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
-  // Create a record stub for the upload — user can edit metadata later.
-  const title = (form.get("title") as string) || file.name.replace(/\.[^.]+$/, "");
-  const type = ((form.get("type") as string) || "lab") as RecordType;
+  // Parse the PDF (best-effort). On failure, fall back to a stub record.
+  let parsed: ParsedDocument | null = null;
+  let parseStatus: "parsed" | "failed" = "failed";
+  if (ext.toLowerCase() === "pdf") {
+    try {
+      parsed = await parsePdf(Buffer.from(rawBytes));
+      parseStatus = "parsed";
+    } catch (e) {
+      console.warn("[upload] parse failed:", (e as Error).message);
+    }
+  }
+
+  // Build the record row from parsed data when available.
+  const recordType: RecordType =
+    parsed && parsed.type !== "other"
+      ? (parsed.type as RecordType)
+      : "lab"; // DB enum doesn't have "other"; default safely
+
+  const today = new Date().toISOString().slice(0, 10);
+  const title =
+    parsed?.title ||
+    (form.get("title") as string) ||
+    file.name.replace(/\.[^.]+$/, "");
+
+  // Strip rawText before persisting — we already have the file in Storage,
+  // no need to duplicate ~80KB of text in the DB row.
+  const parsedToStore = parsed
+    ? (() => {
+        const { rawText: _drop, ...rest } = parsed;
+        return rest;
+      })()
+    : null;
 
   const { error: insErr } = await sb.from("records").insert({
     user_id: DEMO_USER_ID,
-    type,
+    type: recordType,
     title,
-    record_date: new Date().toISOString().slice(0, 10),
-    summary: "Pending review. Tap to add notes, doctor, and tags.",
+    doctor: parsed?.doctor ?? null,
+    facility: parsed?.facility ?? null,
+    record_date: parsed?.date ?? today,
+    summary: parsed?.summary || "Pending review.",
     file_path: path,
+    parsed_data: parsedToStore,
+    parse_status: parseStatus,
   });
   if (insErr) throw new Error(insErr.message);
 
+  // Auto-populate profile from parsed patient info IF profile is empty.
+  if (parsed?.patient?.name) {
+    const existing = await getProfile().catch(() => null);
+    const isEmpty = !existing || !existing.name;
+    if (isEmpty) {
+      const dob = parsed.patient.age
+        ? `${new Date().getFullYear() - parsed.patient.age}-01-01`
+        : null;
+      await sb.from("profiles").upsert({
+        user_id: DEMO_USER_ID,
+        full_name: parsed.patient.name,
+        dob,
+        // Everything else stays empty until the user fills it in or another
+        // doc (e.g. prescription) adds medications/allergies.
+        allergies: [],
+        conditions: [],
+        medications: [],
+        emergency_contacts: [],
+        insurance: null,
+        primary_doctor: null,
+      });
+    }
+  }
+
   revalidatePath("/records");
+  revalidatePath("/emergency");
   revalidatePath("/");
 }
 
@@ -98,6 +167,96 @@ export async function logMetric(input: {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/metrics");
+  revalidatePath("/");
+}
+
+// ---------- insights (LLM) ----------
+
+/**
+ * Pull profile + parsed records + metrics, call the LLM (Ollama), and
+ * replace the user's stored insights. Sends only abnormal lab values
+ * to keep the prompt within llama3:8b's 8K context window.
+ */
+export async function regenerateInsights() {
+  const sb = serverAdmin();
+
+  const [profile, metrics, recordsRes] = await Promise.all([
+    getProfile(),
+    listMetrics(),
+    sb
+      .from("records")
+      .select("type, title, record_date, summary, parsed_data")
+      .eq("user_id", DEMO_USER_ID)
+      .order("record_date", { ascending: false }),
+  ]);
+
+  if (recordsRes.error) throw new Error(recordsRes.error.message);
+
+  // Trim each record's parsed_data — only keep abnormal lab values so the
+  // prompt fits comfortably in the model's context.
+  const records = (recordsRes.data ?? []).map((r) => {
+    const pd = r.parsed_data as ParsedDocument | null;
+    let slim: ParsedDocument | null = null;
+    if (pd) {
+      const { rawText: _drop, ...rest } = pd;
+      slim = {
+        ...rest,
+        rawText: "", // empty rather than undefined to satisfy the type
+        labValues:
+          pd.labValues?.filter(
+            (lv) => lv.flag === "high" || lv.flag === "low",
+          ) ?? [],
+      };
+    }
+    return {
+      type: r.type,
+      title: r.title,
+      date: r.record_date,
+      summary: r.summary ?? "",
+      parsedData: slim,
+    };
+  });
+
+  const ctx: PatientContext = {
+    profile: profile
+      ? {
+          name: profile.name,
+          dob: profile.dob,
+          bloodType: profile.bloodType,
+          allergies: profile.allergies,
+          conditions: profile.conditions,
+          medications: profile.medications,
+        }
+      : null,
+    records,
+    metrics: metrics.map((m) => ({
+      key: m.key,
+      label: m.label,
+      unit: m.unit,
+      healthyRange: m.healthyRange,
+      points: m.points,
+    })),
+  };
+
+  const llm = getLLM();
+  const insights = await llm.generateInsights(ctx);
+
+  // Replace stored insights atomically-ish: delete then insert.
+  await sb.from("insights").delete().eq("user_id", DEMO_USER_ID);
+  if (insights.length > 0) {
+    const { error } = await sb.from("insights").insert(
+      insights.map((i) => ({
+        user_id: DEMO_USER_ID,
+        severity: i.severity,
+        title: i.title,
+        detail: i.detail,
+        suggestion: i.suggestion,
+      })),
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath("/insights");
   revalidatePath("/");
 }
 
