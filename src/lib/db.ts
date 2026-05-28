@@ -112,12 +112,26 @@ const METRIC_META: Record<
   string,
   { label: string; unit: string; healthyRange?: [number, number] }
 > = {
+  // User-logged lifestyle metrics
   bp_sys: { label: "Blood Pressure (Systolic)", unit: "mmHg", healthyRange: [90, 130] },
   bp_dia: { label: "Blood Pressure (Diastolic)", unit: "mmHg", healthyRange: [60, 85] },
-  weight: { label: "Weight", unit: "kg", healthyRange: [68, 78] },
-  glucose: { label: "Fasting Glucose", unit: "mg/dL", healthyRange: [70, 99] },
+  weight: { label: "Weight", unit: "kg", healthyRange: [50, 90] },
   resting_hr: { label: "Resting Heart Rate", unit: "bpm", healthyRange: [55, 75] },
   sleep_hrs: { label: "Sleep", unit: "hrs/night", healthyRange: [7, 9] },
+
+  // Lab markers — auto-populated from uploaded reports
+  glucose:       { label: "Fasting Glucose",       unit: "mg/dL",   healthyRange: [70, 99] },
+  hba1c:         { label: "HbA1c",                 unit: "%",       healthyRange: [4.0, 5.7] },
+  ldl:           { label: "LDL Cholesterol",       unit: "mg/dL",   healthyRange: [0, 100] },
+  hdl:           { label: "HDL Cholesterol",       unit: "mg/dL",   healthyRange: [40, 100] },
+  triglycerides: { label: "Triglycerides",         unit: "mg/dL",   healthyRange: [0, 150] },
+  total_chol:    { label: "Total Cholesterol",     unit: "mg/dL",   healthyRange: [0, 200] },
+  vitamin_d:     { label: "Vitamin D (25-OH)",     unit: "ng/mL",   healthyRange: [30, 100] },
+  vitamin_b12:   { label: "Vitamin B12",           unit: "pg/mL",   healthyRange: [200, 900] },
+  creatinine:    { label: "Serum Creatinine",      unit: "mg/dL",   healthyRange: [0.7, 1.3] },
+  alt:           { label: "ALT (SGPT)",            unit: "U/L",     healthyRange: [0, 50] },
+  ast:           { label: "AST (SGOT)",            unit: "U/L",     healthyRange: [0, 40] },
+  tsh:           { label: "TSH",                   unit: "μIU/mL",  healthyRange: [0.55, 4.78] },
 };
 
 export async function listMetrics(

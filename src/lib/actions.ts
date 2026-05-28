@@ -16,6 +16,7 @@ import {
   getProfile,
   listMetrics,
 } from "./db";
+import { bridgeLabValuesToMetrics } from "./metric-bridge";
 import type { RecordType, DeliveryMethod, OrderItem } from "./types";
 
 // ---------- records ----------
@@ -144,8 +145,28 @@ export async function uploadRecordFile(form: FormData) {
     }
   }
 
+  // Bridge parsed lab values into metrics_readings — lets the metrics
+  // charts auto-populate from uploaded reports.
+  if (parsed?.labValues?.length) {
+    const readings = bridgeLabValuesToMetrics(
+      parsed.labValues,
+      parsed.date ?? today,
+    );
+    if (readings.length > 0) {
+      await sb.from("metrics_readings").insert(
+        readings.map((r) => ({
+          user_id: DEMO_USER_ID,
+          key: r.key,
+          value: r.value,
+          taken_at: r.takenAt,
+        })),
+      );
+    }
+  }
+
   revalidatePath("/records");
   revalidatePath("/emergency");
+  revalidatePath("/metrics");
   revalidatePath("/");
 }
 
