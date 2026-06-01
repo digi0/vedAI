@@ -62,6 +62,9 @@ export type PharmacyItem = {
   prescribedBy: string;
   rxRecordId?: string; // links to a MedicalRecord of type "prescription"
   note?: string;
+  // Drug class used to cross-check against the patient's allergy list.
+  // Compared case-insensitively against EmergencyProfile.allergies.
+  allergyClass?: string;
 };
 
 export type DeliveryMethod = "pickup" | "standard" | "express";

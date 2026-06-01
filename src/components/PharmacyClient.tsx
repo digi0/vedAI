@@ -44,9 +44,11 @@ function money(n: number) {
 export default function PharmacyClient({
   items,
   orders,
+  allergies,
 }: {
   items: PharmacyItem[];
   orders: MedicationOrder[];
+  allergies: string[];
 }) {
   const router = useRouter();
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -57,12 +59,20 @@ export default function PharmacyClient({
     new Set(),
   );
 
+  const allergyHits = (item: PharmacyItem) => {
+    if (!item.allergyClass) return [];
+    const cls = item.allergyClass.toLowerCase();
+    return allergies.filter((a) => a.toLowerCase() === cls);
+  };
+
+  // Exclude allergy-blocked items from the cart even if stale state has them.
   const cartLines = useMemo(
     () =>
       items
-        .filter((m) => (cart[m.id] ?? 0) > 0)
+        .filter((m) => (cart[m.id] ?? 0) > 0 && allergyHits(m).length === 0)
         .map((m) => ({ item: m, qty: cart[m.id] })),
-    [cart, items],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cart, items, allergies],
   );
 
   const itemCount = cartLines.reduce((s, l) => s + l.qty, 0);
@@ -152,14 +162,26 @@ export default function PharmacyClient({
           ) : (
             items.map((m) => {
               const qty = cart[m.id] ?? 0;
-              const orderable = m.refillsLeft > 0;
+              const conflicts = allergyHits(m);
+              const isBlocked = conflicts.length > 0;
+              const orderable = !isBlocked && m.refillsLeft > 0;
               const isRequested = refillRequested.has(m.id);
               return (
                 <article
                   key={m.id}
-                  className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                  className={`flex items-start gap-3 rounded-lg border bg-[var(--color-surface)] p-4 ${
+                    isBlocked
+                      ? "border-[var(--color-alert)]"
+                      : "border-[var(--color-border)]"
+                  }`}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-2)] text-lg">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg ${
+                      isBlocked
+                        ? "bg-[var(--color-alert-soft)]"
+                        : "bg-[var(--color-surface-2)]"
+                    }`}
+                  >
                     <span aria-hidden>{formIcon[m.form]}</span>
                   </div>
                   <div className="min-w-0 flex-1">
@@ -171,7 +193,11 @@ export default function PharmacyClient({
                         </span>
                       </h3>
                       <Badge tone="neutral">{m.form}</Badge>
-                      {orderable ? (
+                      {isBlocked ? (
+                        <Badge tone="alert">
+                          ⚠ Allergy: {conflicts.join(", ")}
+                        </Badge>
+                      ) : orderable ? (
                         <Badge tone="ok">{m.refillsLeft} refills left</Badge>
                       ) : (
                         <Badge tone="warn">Refill auth needed</Badge>
@@ -185,6 +211,14 @@ export default function PharmacyClient({
                         {m.note}
                       </p>
                     )}
+                    {isBlocked && (
+                      <p className="mt-2 rounded-md bg-[var(--color-alert-soft)] px-3 py-2 text-sm text-[var(--color-alert)]">
+                        Blocked — {m.name} is a {m.allergyClass}-class drug
+                        and you have a documented {conflicts.join(", ")}{" "}
+                        allergy. Talk to {m.prescribedBy} or your PCP before
+                        refilling.
+                      </p>
+                    )}
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <div className="font-display text-xl">
                         {money(m.price)}
@@ -192,7 +226,14 @@ export default function PharmacyClient({
                           / fill
                         </span>
                       </div>
-                      {orderable ? (
+                      {isBlocked ? (
+                        <button
+                          disabled
+                          className="cursor-not-allowed rounded-md border border-[var(--color-alert)] bg-[var(--color-alert-soft)] px-4 py-2 text-sm text-[var(--color-alert)]"
+                        >
+                          Allergy block
+                        </button>
+                      ) : orderable ? (
                         qty > 0 ? (
                           <div className="flex items-center gap-2">
                             <button
