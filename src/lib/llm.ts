@@ -7,6 +7,7 @@
  * structured data.
  */
 
+import Anthropic from "@anthropic-ai/sdk";
 import type { ParsedDocument } from "medical-parser";
 import type { Insight } from "./types";
 
@@ -109,6 +110,55 @@ export class OllamaProvider implements LLMProvider {
   }
 }
 
+/**
+ * Anthropic (Claude) provider — used in production. The system prompt is
+ * sent with cache_control so it's cached once the prompt grows past the
+ * model's minimum cacheable size (harmless no-op below it).
+ */
+export class AnthropicProvider implements LLMProvider {
+  async generateInsights(ctx: PatientContext): Promise<Insight[]> {
+    const client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
+    const model = process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-latest";
+
+    const msg = await client.messages.create({
+      model,
+      max_tokens: 1500,
+      temperature: 0.2,
+      system: [
+        {
+          type: "text",
+          text: INSIGHTS_SYSTEM,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `Patient data:\n\n${JSON.stringify(ctx, null, 2)}\n\nReturn the JSON array now.`,
+        },
+      ],
+    });
+
+    const text = msg.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+
+    try {
+      const parsed = JSON.parse(stripCodeFence(text));
+      return Array.isArray(parsed) ? parsed : (parsed.insights ?? []);
+    } catch {
+      throw new Error(`Claude returned non-JSON:\n${text.slice(0, 400)}`);
+    }
+  }
+}
+
+/**
+ * Pick the provider by environment:
+ *   - ANTHROPIC_API_KEY set  → Claude (production / deployed)
+ *   - otherwise              → Ollama (local dev)
+ */
 export function getLLM(): LLMProvider {
+  if (process.env.ANTHROPIC_API_KEY) return new AnthropicProvider();
   return new OllamaProvider();
 }

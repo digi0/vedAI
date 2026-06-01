@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getSessionUser } from "@/lib/supabase";
+import { signOut } from "@/lib/auth-actions";
 
 const links = [
   { href: "/", label: "Overview" },
@@ -9,7 +11,11 @@ const links = [
   { href: "/emergency", label: "Emergency" },
 ];
 
-export default function Nav() {
+export default async function Nav() {
+  const user = await getSessionUser();
+  // No nav for logged-out visitors (login / signup / doctor share view).
+  if (!user) return null;
+
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
@@ -19,16 +25,12 @@ export default function Nav() {
             className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-brand)] text-white"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 3v18M3 12h18"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
+              <path d="M12 3v18M3 12h18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </span>
           <span className="font-display text-xl">Ved AI</span>
         </Link>
+
         <nav className="flex items-center gap-1 text-sm">
           {links.map((l) => (
             <Link
@@ -45,6 +47,15 @@ export default function Nav() {
           >
             Share with doctor
           </Link>
+          <form action={signOut} className="ml-1">
+            <button
+              type="submit"
+              title={user.email ?? "Sign out"}
+              className="rounded-md px-3 py-1.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+            >
+              Sign out
+            </button>
+          </form>
         </nav>
       </div>
     </header>

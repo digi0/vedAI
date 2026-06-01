@@ -3,19 +3,18 @@
 /**
  * Server actions — mutations called from client components via forms.
  *
- * Same demo-phase rules as db.ts: every write uses DEMO_USER_ID and the
- * service_role client. Once auth lands, switch to a per-request server
- * client with the session UID.
+ * Every write resolves the verified session user via requireUserId() and
+ * scopes rows to that id. We use the service-role client for writes (so
+ * Storage and inserts don't need extra RLS policies), but user_id is always
+ * the authenticated user — never trusted input — so there's no cross-user
+ * leakage. Reads go through the RLS-enforced client in db.ts.
  */
 
 import { revalidatePath } from "next/cache";
 import { parsePdf, type ParsedDocument } from "medical-parser";
-import { serverAdmin, DEMO_USER_ID } from "./supabase";
+import { serverAdmin, requireUserId } from "./supabase";
 import { getLLM, type PatientContext } from "./llm";
-import {
-  getProfile,
-  listMetrics,
-} from "./db";
+import { getProfile, listMetrics } from "./db";
 import { bridgeLabValuesToMetrics } from "./metric-bridge";
 import type { RecordType, DeliveryMethod, OrderItem } from "./types";
 
@@ -31,9 +30,10 @@ export async function createRecord(input: {
   tags?: string[];
   filePath?: string;
 }) {
+  const userId = await requireUserId();
   const sb = serverAdmin();
   const { error } = await sb.from("records").insert({
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     type: input.type,
     title: input.title,
     doctor: input.doctor ?? null,
@@ -62,9 +62,10 @@ export async function uploadRecordFile(form: FormData) {
     throw new Error("No file provided.");
   }
 
+  const userId = await requireUserId();
   const sb = serverAdmin();
   const ext = file.name.split(".").pop() ?? "bin";
-  const path = `${DEMO_USER_ID}/${crypto.randomUUID()}.${ext}`;
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
 
   const rawBytes = await file.arrayBuffer();
   const bytes = new Uint8Array(rawBytes);
@@ -108,7 +109,7 @@ export async function uploadRecordFile(form: FormData) {
     : null;
 
   const { error: insErr } = await sb.from("records").insert({
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     type: recordType,
     title,
     doctor: parsed?.doctor ?? null,
@@ -130,7 +131,7 @@ export async function uploadRecordFile(form: FormData) {
         ? `${new Date().getFullYear() - parsed.patient.age}-01-01`
         : null;
       await sb.from("profiles").upsert({
-        user_id: DEMO_USER_ID,
+        user_id: userId,
         full_name: parsed.patient.name,
         dob,
         // Everything else stays empty until the user fills it in or another
@@ -155,7 +156,7 @@ export async function uploadRecordFile(form: FormData) {
     if (readings.length > 0) {
       await sb.from("metrics_readings").insert(
         readings.map((r) => ({
-          user_id: DEMO_USER_ID,
+          user_id: userId,
           key: r.key,
           value: r.value,
           taken_at: r.takenAt,
@@ -178,9 +179,10 @@ export async function logMetric(input: {
   takenAt?: string;
   note?: string;
 }) {
+  const userId = await requireUserId();
   const sb = serverAdmin();
   const { error } = await sb.from("metrics_readings").insert({
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     key: input.key,
     value: input.value,
     taken_at: input.takenAt ?? new Date().toISOString(),
@@ -199,6 +201,7 @@ export async function logMetric(input: {
  * to keep the prompt within llama3:8b's 8K context window.
  */
 export async function regenerateInsights() {
+  const userId = await requireUserId();
   const sb = serverAdmin();
 
   const [profile, metrics, recordsRes] = await Promise.all([
@@ -207,7 +210,7 @@ export async function regenerateInsights() {
     sb
       .from("records")
       .select("type, title, record_date, summary, parsed_data")
-      .eq("user_id", DEMO_USER_ID)
+      .eq("user_id", userId)
       .order("record_date", { ascending: false }),
   ]);
 
@@ -263,11 +266,11 @@ export async function regenerateInsights() {
   const insights = await llm.generateInsights(ctx);
 
   // Replace stored insights atomically-ish: delete then insert.
-  await sb.from("insights").delete().eq("user_id", DEMO_USER_ID);
+  await sb.from("insights").delete().eq("user_id", userId);
   if (insights.length > 0) {
     const { error } = await sb.from("insights").insert(
       insights.map((i) => ({
-        user_id: DEMO_USER_ID,
+        user_id: userId,
         severity: i.severity,
         title: i.title,
         detail: i.detail,
@@ -301,10 +304,11 @@ export async function placeOrder(input: {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const id = `ORD-${stamp}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  const userId = await requireUserId();
   const sb = serverAdmin();
   const { error } = await sb.from("medication_orders").insert({
     id,
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     delivery: input.delivery,
     total,
     status: "processing",
@@ -318,7 +322,7 @@ export async function placeOrder(input: {
     const { data: rows } = await sb
       .from("pharmacy_items")
       .select("id, refills_left")
-      .eq("user_id", DEMO_USER_ID)
+      .eq("user_id", userId)
       .eq("name", i.name)
       .eq("dose", i.dose)
       .limit(1);
@@ -338,12 +342,13 @@ export async function placeOrder(input: {
 export async function requestRefillAuth(itemId: string) {
   // Demo stub — in production this would notify the prescribing doctor.
   // For now we just touch the row's note so the UI can show "requested".
+  const userId = await requireUserId();
   const sb = serverAdmin();
   await sb
     .from("pharmacy_items")
     .update({ note: "Refill auth requested — pending doctor approval." })
     .eq("id", itemId)
-    .eq("user_id", DEMO_USER_ID);
+    .eq("user_id", userId);
   revalidatePath("/pharmacy");
 }
 
@@ -362,6 +367,7 @@ function genToken(): string {
 export async function createShareToken(opts?: {
   hoursValid?: number;
 }): Promise<string> {
+  const userId = await requireUserId();
   const sb = serverAdmin();
   const token = genToken();
   const hours = opts?.hoursValid ?? 72;
@@ -369,7 +375,7 @@ export async function createShareToken(opts?: {
 
   const { error } = await sb.from("share_tokens").insert({
     token,
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     expires_at: expires,
   });
   if (error) throw new Error(error.message);
@@ -377,10 +383,12 @@ export async function createShareToken(opts?: {
 }
 
 export async function revokeShareToken(token: string) {
+  const userId = await requireUserId();
   const sb = serverAdmin();
   await sb
     .from("share_tokens")
     .update({ revoked_at: new Date().toISOString() })
-    .eq("token", token);
+    .eq("token", token)
+    .eq("user_id", userId);
   revalidatePath("/share");
 }

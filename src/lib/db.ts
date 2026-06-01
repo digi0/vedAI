@@ -1,16 +1,15 @@
 /**
  * Server-side data accessors.
  *
- * Every function in this file is SERVER-ONLY — they use the service_role
- * client which bypasses RLS. Never import from a client component.
- *
- * During the demo phase, all reads/writes default to DEMO_USER_ID. Once
- * auth lands, swap the userId arg for the session UID and most of these
- * helpers move to the browser anon client.
+ * Reads run as the logged-in user through the cookie-bound client, so RLS
+ * (auth.uid() = user_id) enforces per-user isolation. The one exception is
+ * the doctor share view, which is intentionally cross-user but gated by a
+ * share token — those calls pass { userId, admin: true } and use the
+ * service-role client.
  */
 
 import "server-only";
-import { serverAdmin, DEMO_USER_ID } from "./supabase";
+import { supabaseServer, serverAdmin } from "./supabase";
 import type {
   MedicalRecord,
   MetricSeries,
@@ -23,12 +22,25 @@ import type {
   OrderStatus,
 } from "./types";
 
+/** Read options. Default = current session user via RLS. */
+export type ReadOpts = { userId?: string; admin?: boolean };
+
+async function readCtx(opts?: ReadOpts) {
+  if (opts?.admin && opts.userId) {
+    return { sb: serverAdmin(), userId: opts.userId };
+  }
+  const sb = await supabaseServer();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) throw new Error("Not authenticated.");
+  return { sb, userId: user.id };
+}
+
 // ---------- profile ----------
 
-export async function getProfile(
-  userId: string = DEMO_USER_ID,
-): Promise<EmergencyProfile | null> {
-  const sb = serverAdmin();
+export async function getProfile(opts?: ReadOpts): Promise<EmergencyProfile | null> {
+  const { sb, userId } = await readCtx(opts);
   const { data, error } = await sb
     .from("profiles")
     .select("*")
@@ -47,10 +59,7 @@ export async function getProfile(
     medications: data.medications ?? [],
     emergencyContacts: data.emergency_contacts ?? [],
     insurance: data.insurance
-      ? {
-          provider: data.insurance.provider,
-          policyNumber: data.insurance.policy_number,
-        }
+      ? { provider: data.insurance.provider, policyNumber: data.insurance.policy_number }
       : { provider: "", policyNumber: "" },
     primaryDoctor: data.primary_doctor ?? { name: "", phone: "" },
   };
@@ -58,10 +67,8 @@ export async function getProfile(
 
 // ---------- records ----------
 
-export async function listRecords(
-  userId: string = DEMO_USER_ID,
-): Promise<MedicalRecord[]> {
-  const sb = serverAdmin();
+export async function listRecords(opts?: ReadOpts): Promise<MedicalRecord[]> {
+  const { sb, userId } = await readCtx(opts);
   const { data, error } = await sb
     .from("records")
     .select("*")
@@ -96,7 +103,7 @@ function rowToRecord(r: {
   };
 }
 
-/** Generate a signed URL for a stored record file (60s TTL). */
+/** Signed URL for a stored record file (60s TTL). Storage is service-role. */
 export async function signedRecordUrl(filePath: string): Promise<string | null> {
   const sb = serverAdmin();
   const { data, error } = await sb.storage
@@ -112,32 +119,27 @@ const METRIC_META: Record<
   string,
   { label: string; unit: string; healthyRange?: [number, number] }
 > = {
-  // User-logged lifestyle metrics
   bp_sys: { label: "Blood Pressure (Systolic)", unit: "mmHg", healthyRange: [90, 130] },
   bp_dia: { label: "Blood Pressure (Diastolic)", unit: "mmHg", healthyRange: [60, 85] },
   weight: { label: "Weight", unit: "kg", healthyRange: [50, 90] },
   resting_hr: { label: "Resting Heart Rate", unit: "bpm", healthyRange: [55, 75] },
   sleep_hrs: { label: "Sleep", unit: "hrs/night", healthyRange: [7, 9] },
-
-  // Lab markers — auto-populated from uploaded reports
-  glucose:       { label: "Fasting Glucose",       unit: "mg/dL",   healthyRange: [70, 99] },
-  hba1c:         { label: "HbA1c",                 unit: "%",       healthyRange: [4.0, 5.7] },
-  ldl:           { label: "LDL Cholesterol",       unit: "mg/dL",   healthyRange: [0, 100] },
-  hdl:           { label: "HDL Cholesterol",       unit: "mg/dL",   healthyRange: [40, 100] },
-  triglycerides: { label: "Triglycerides",         unit: "mg/dL",   healthyRange: [0, 150] },
-  total_chol:    { label: "Total Cholesterol",     unit: "mg/dL",   healthyRange: [0, 200] },
-  vitamin_d:     { label: "Vitamin D (25-OH)",     unit: "ng/mL",   healthyRange: [30, 100] },
-  vitamin_b12:   { label: "Vitamin B12",           unit: "pg/mL",   healthyRange: [200, 900] },
-  creatinine:    { label: "Serum Creatinine",      unit: "mg/dL",   healthyRange: [0.7, 1.3] },
-  alt:           { label: "ALT (SGPT)",            unit: "U/L",     healthyRange: [0, 50] },
-  ast:           { label: "AST (SGOT)",            unit: "U/L",     healthyRange: [0, 40] },
-  tsh:           { label: "TSH",                   unit: "μIU/mL",  healthyRange: [0.55, 4.78] },
+  glucose: { label: "Fasting Glucose", unit: "mg/dL", healthyRange: [70, 99] },
+  hba1c: { label: "HbA1c", unit: "%", healthyRange: [4.0, 5.7] },
+  ldl: { label: "LDL Cholesterol", unit: "mg/dL", healthyRange: [0, 100] },
+  hdl: { label: "HDL Cholesterol", unit: "mg/dL", healthyRange: [40, 100] },
+  triglycerides: { label: "Triglycerides", unit: "mg/dL", healthyRange: [0, 150] },
+  total_chol: { label: "Total Cholesterol", unit: "mg/dL", healthyRange: [0, 200] },
+  vitamin_d: { label: "Vitamin D (25-OH)", unit: "ng/mL", healthyRange: [30, 100] },
+  vitamin_b12: { label: "Vitamin B12", unit: "pg/mL", healthyRange: [200, 900] },
+  creatinine: { label: "Serum Creatinine", unit: "mg/dL", healthyRange: [0.7, 1.3] },
+  alt: { label: "ALT (SGPT)", unit: "U/L", healthyRange: [0, 50] },
+  ast: { label: "AST (SGOT)", unit: "U/L", healthyRange: [0, 40] },
+  tsh: { label: "TSH", unit: "μIU/mL", healthyRange: [0.55, 4.78] },
 };
 
-export async function listMetrics(
-  userId: string = DEMO_USER_ID,
-): Promise<MetricSeries[]> {
-  const sb = serverAdmin();
+export async function listMetrics(opts?: ReadOpts): Promise<MetricSeries[]> {
+  const { sb, userId } = await readCtx(opts);
   const { data, error } = await sb
     .from("metrics_readings")
     .select("key, value, taken_at")
@@ -173,10 +175,8 @@ export type Insight = {
   generatedAt: string;
 };
 
-export async function listInsights(
-  userId: string = DEMO_USER_ID,
-): Promise<Insight[]> {
-  const sb = serverAdmin();
+export async function listInsights(opts?: ReadOpts): Promise<Insight[]> {
+  const { sb, userId } = await readCtx(opts);
   const { data, error } = await sb
     .from("insights")
     .select("*")
@@ -196,10 +196,8 @@ export async function listInsights(
 
 // ---------- pharmacy ----------
 
-export async function listPharmacyItems(
-  userId: string = DEMO_USER_ID,
-): Promise<PharmacyItem[]> {
-  const sb = serverAdmin();
+export async function listPharmacyItems(opts?: ReadOpts): Promise<PharmacyItem[]> {
+  const { sb, userId } = await readCtx(opts);
   const { data, error } = await sb
     .from("pharmacy_items")
     .select("*")
@@ -222,10 +220,8 @@ export async function listPharmacyItems(
   }));
 }
 
-export async function listMedicationOrders(
-  userId: string = DEMO_USER_ID,
-): Promise<MedicationOrder[]> {
-  const sb = serverAdmin();
+export async function listMedicationOrders(opts?: ReadOpts): Promise<MedicationOrder[]> {
+  const { sb, userId } = await readCtx(opts);
   const { data, error } = await sb
     .from("medication_orders")
     .select("*")
@@ -243,7 +239,7 @@ export async function listMedicationOrders(
   }));
 }
 
-// ---------- share tokens ----------
+// ---------- share tokens (token-gated, cross-user) ----------
 
 export type ShareToken = {
   token: string;

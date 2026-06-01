@@ -1,15 +1,15 @@
 import { SectionTitle, Card, Badge } from "@/components/Card";
-import { serverAdmin, DEMO_USER_ID } from "@/lib/supabase";
+import { supabaseServer } from "@/lib/supabase";
 import ShareManager from "@/components/ShareManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function SharePage() {
-  const sb = serverAdmin();
+  const sb = await supabaseServer();
+  // RLS scopes share_tokens to the logged-in owner.
   const { data } = await sb
     .from("share_tokens")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
     .order("created_at", { ascending: false });
 
   const tokens = (data ?? []).map((t) => ({

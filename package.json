@@ -9,9 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
-    "medical-parser": "file:../medical-parser/medical-parser-0.1.0.tgz",
+    "medical-parser": "file:vendor/medical-parser-0.1.0.tgz",
     "next": "16.2.6",
     "pdf-parse": "^2.4.5",
     "react": "19.2.4",
