@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useState } from "react";
-import { uploadRecordFile } from "@/lib/actions";
+import { ingestRecord } from "@/lib/actions";
+import { browserClient } from "@/lib/supabase-browser";
 
 const types = [
   { key: "all", label: "All" },
@@ -38,10 +39,24 @@ export default function RecordsToolbar({
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.set("file", file);
-      form.set("type", "lab");
-      await uploadRecordFile(form);
+      const sb = browserClient();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user) throw new Error("Please sign in again.");
+
+      // Upload the file straight to Storage from the browser. This avoids
+      // routing the (potentially large) file through a Vercel serverless
+      // function, which caps request bodies at 4.5 MB.
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("record-files")
+        .upload(path, file, { contentType: file.type || undefined });
+      if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+
+      // Hand the server just the path — it downloads, parses, and persists.
+      await ingestRecord({ path, fileName: file.name });
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed");

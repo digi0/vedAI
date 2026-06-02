@@ -49,41 +49,44 @@ export async function createRecord(input: {
 }
 
 /**
- * Upload a record file, parse it with medical-parser, and persist both
- * the file (Storage) and the structured fields (records.parsed_data).
+ * Ingest a record file that the CLIENT has already uploaded directly to
+ * Storage (browser → Supabase, bypassing Vercel's 4.5MB serverless body
+ * limit). The server only receives the storage path: it downloads the file
+ * server-side, parses it, and persists the record + parsed fields.
  *
- * If parsing succeeds and the user's profile is empty, populate it from
- * the parsed patient info — handy for the demo so a single upload also
- * boots the emergency card. We DO NOT overwrite an existing profile.
+ * If the user's profile is empty, it's seeded from the parsed patient info
+ * (never overwrites an existing profile).
  */
-export async function uploadRecordFile(form: FormData) {
-  const file = form.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("No file provided.");
+export async function ingestRecord(input: { path: string; fileName: string }) {
+  const userId = await requireUserId();
+
+  // Security: the path must live in the caller's own folder.
+  if (!input.path.startsWith(`${userId}/`)) {
+    throw new Error("Invalid file path.");
   }
 
-  const userId = await requireUserId();
   const sb = serverAdmin();
-  const ext = file.name.split(".").pop() ?? "bin";
-  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const ext = input.fileName.split(".").pop()?.toLowerCase() ?? "bin";
 
-  const rawBytes = await file.arrayBuffer();
-  const bytes = new Uint8Array(rawBytes);
-
-  const { error: upErr } = await sb.storage
+  // Download the file we just uploaded (server-side, no body limit).
+  const { data: blob, error: dlErr } = await sb.storage
     .from("record-files")
-    .upload(path, bytes, { contentType: file.type || undefined });
-  if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+    .download(input.path);
+  if (dlErr || !blob) {
+    throw new Error(`Could not read the uploaded file: ${dlErr?.message ?? "missing"}`);
+  }
+  const rawBytes = await blob.arrayBuffer();
+  const path = input.path;
 
   // Parse the PDF (best-effort). On failure, fall back to a stub record.
   let parsed: ParsedDocument | null = null;
   let parseStatus: "parsed" | "failed" = "failed";
-  if (ext.toLowerCase() === "pdf") {
+  if (ext === "pdf") {
     try {
       parsed = await parsePdf(Buffer.from(rawBytes));
       parseStatus = "parsed";
     } catch (e) {
-      console.warn("[upload] parse failed:", (e as Error).message);
+      console.warn("[ingest] parse failed:", (e as Error).message);
     }
   }
 
@@ -95,9 +98,7 @@ export async function uploadRecordFile(form: FormData) {
 
   const today = new Date().toISOString().slice(0, 10);
   const title =
-    parsed?.title ||
-    (form.get("title") as string) ||
-    file.name.replace(/\.[^.]+$/, "");
+    parsed?.title || input.fileName.replace(/\.[^.]+$/, "");
 
   // Strip rawText before persisting — we already have the file in Storage,
   // no need to duplicate ~80KB of text in the DB row.

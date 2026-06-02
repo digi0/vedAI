@@ -13,17 +13,14 @@
  *   requireUserId()    — the current user's id, or throws (use in actions).
  */
 
-import { createBrowserClient, createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-/** Browser-side client — anon key, RLS-enforced. */
-export function browserClient() {
-  return createBrowserClient(url, anonKey);
-}
+// Browser client lives in lib/supabase-browser.ts (no server imports).
 
 /**
  * Cookie-bound server client. Reads/writes the Supabase auth session from
