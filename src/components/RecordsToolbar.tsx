@@ -56,7 +56,14 @@ export default function RecordsToolbar({
       if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
       // Hand the server just the path — it downloads, parses, and persists.
-      await ingestRecord({ path, fileName: file.name });
+      const res = await ingestRecord({ path, fileName: file.name });
+      if (!res.ok) throw new Error(res.error);
+      if (!res.parsed) {
+        alert(
+          "Uploaded — but the file couldn't be auto-parsed, so it's saved as " +
+            "'Pending review' with no metrics. (You can still view the file.)",
+        );
+      }
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed");
