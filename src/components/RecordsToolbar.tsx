@@ -82,7 +82,7 @@ export default function RecordsToolbar({
           setQ(e.target.value);
           setParam("q", e.target.value);
         }}
-        className="min-w-[240px] flex-1 rounded-md border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+        className="min-w-[240px] flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm"
       />
       <div className="flex flex-wrap gap-1">
         {types.map((t) => (
@@ -92,7 +92,7 @@ export default function RecordsToolbar({
             className={`rounded-md px-3 py-1.5 text-sm transition ${
               activeType === t.key
                 ? "bg-[var(--color-fg)] text-white"
-                : "border border-[var(--color-border)] bg-white text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+                : "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
             }`}
           >
             {t.label}

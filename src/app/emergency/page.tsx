@@ -37,7 +37,7 @@ export default async function Emergency() {
         screen — accessible without unlocking your account.
       </p>
 
-      <Card className="bg-gradient-to-br from-white to-[var(--color-brand-soft)]">
+      <Card className="bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-brand-soft)]">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
             <div className="text-xs uppercase tracking-wider text-[var(--color-fg-dim)]">

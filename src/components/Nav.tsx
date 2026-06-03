@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/supabase";
 import { signOut } from "@/lib/auth-actions";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const links = [
   { href: "/", label: "Overview" },
@@ -41,9 +42,10 @@ export default async function Nav() {
               {l.label}
             </Link>
           ))}
+          <ThemeToggle />
           <Link
             href="/share"
-            className="ml-2 rounded-md bg-[var(--color-brand)] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
+            className="ml-1 rounded-md bg-[var(--color-brand)] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
           >
             Share with doctor
           </Link>

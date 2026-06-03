@@ -115,7 +115,7 @@ function Field({
       </span>
       <input
         {...props}
-        className="w-full rounded-md border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:border-[var(--color-brand)]"
+        className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:border-[var(--color-brand)]"
       />
     </label>
   );

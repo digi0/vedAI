@@ -56,13 +56,13 @@ export default async function Overview() {
           </Link>
           <Link
             href="/pharmacy"
-            className="rounded-md border border-[var(--color-border-strong)] bg-white px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
+            className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
           >
             Order medication
           </Link>
           <Link
             href="/emergency"
-            className="rounded-md border border-[var(--color-border-strong)] bg-white px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
+            className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
           >
             Emergency card
           </Link>

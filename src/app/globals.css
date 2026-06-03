@@ -34,6 +34,40 @@
   --font-display: var(--font-display);
 }
 
+/* ── Dark theme ──────────────────────────────────────────────
+   Every component references colors via var(--color-*), so overriding
+   the tokens on html.dark recolors the whole app. html.dark beats :root
+   on specificity, so this wins regardless of source order. */
+:root {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --color-bg: #0e1116;
+  --color-surface: #161b24;
+  --color-surface-2: #1e2531;
+  --color-border: #283041;
+  --color-border-strong: #3a4458;
+
+  --color-fg: #e8eaf0;
+  --color-fg-muted: #9aa6ba;
+  --color-fg-dim: #6b7689;
+
+  --color-brand: #1aa491;
+  --color-brand-strong: #2bc4af; /* hover trends lighter on dark */
+  --color-brand-soft: #103029;
+  --color-brand-tint: #0e2622;
+
+  --color-ok: #4ade80;
+  --color-ok-soft: #0f2e1e;
+  --color-warn: #f5b454;
+  --color-warn-soft: #382a12;
+  --color-alert: #f87171;
+  --color-alert-soft: #3a1a1a;
+}
+
 html,
 body {
   background: var(--color-bg);
@@ -120,6 +154,19 @@ a {
 
 /* Print: emergency card / records as a clean, single-page document */
 @media print {
+  /* Always print light — a dark-mode session shouldn't ink a black card. */
+  html,
+  html.dark {
+    color-scheme: light;
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-2: #ffffff;
+    --color-border: #d0d0d0;
+    --color-border-strong: #b0b0b0;
+    --color-fg: #0a0a0a;
+    --color-fg-muted: #444444;
+    --color-fg-dim: #666666;
+  }
   html,
   body {
     background: #ffffff;

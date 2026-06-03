@@ -24,7 +24,7 @@ export default function LogMetricForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md border border-[var(--color-border-strong)] bg-white px-3 py-1.5 text-sm"
+        className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-sm"
       >
         Log new reading
       </button>
@@ -43,11 +43,11 @@ export default function LogMetricForm() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-[var(--color-border)] bg-white p-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-2">
       <select
         value={key}
         onChange={(e) => setKey(e.target.value)}
-        className="rounded-md border border-[var(--color-border)] bg-white px-2 py-1.5 text-sm"
+        className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm"
       >
         {options.map((o) => (
           <option key={o.key} value={o.key}>

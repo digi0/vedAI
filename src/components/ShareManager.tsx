@@ -37,7 +37,7 @@ export default function ShareManager({
   ).length;
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-white p-5">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm font-medium">Generate a new share link</div>
@@ -61,7 +61,7 @@ export default function ShareManager({
           </code>
           <button
             onClick={copy}
-            className="rounded-md border border-[var(--color-brand)] bg-white px-3 py-1 text-sm text-[var(--color-brand)]"
+            className="rounded-md border border-[var(--color-brand)] bg-[var(--color-surface)] px-3 py-1 text-sm text-[var(--color-brand)]"
           >
             {copied ? "Copied ✓" : "Copy"}
           </button>

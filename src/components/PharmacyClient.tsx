@@ -238,7 +238,7 @@ export default function PharmacyClient({
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setQty(m.id, qty - 1)}
-                              className="h-8 w-8 rounded-md border border-[var(--color-border)] bg-white text-lg leading-none"
+                              className="h-8 w-8 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-lg leading-none"
                               aria-label={`Decrease ${m.name}`}
                             >
                               −
@@ -248,7 +248,7 @@ export default function PharmacyClient({
                             </span>
                             <button
                               onClick={() => setQty(m.id, qty + 1)}
-                              className="h-8 w-8 rounded-md border border-[var(--color-border)] bg-white text-lg leading-none"
+                              className="h-8 w-8 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-lg leading-none"
                               aria-label={`Increase ${m.name}`}
                             >
                               +
@@ -269,7 +269,7 @@ export default function PharmacyClient({
                           className={`rounded-md px-4 py-2 text-sm transition ${
                             isRequested
                               ? "border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-fg-muted)]"
-                              : "border border-[var(--color-border-strong)] bg-white hover:bg-[var(--color-surface-2)]"
+                              : "border border-[var(--color-border-strong)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]"
                           }`}
                         >
                           {isRequested ? "Refill requested ✓" : "Request refill"}
@@ -323,7 +323,7 @@ export default function PharmacyClient({
                           className={`flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition ${
                             delivery === d.key
                               ? "border-[var(--color-brand)] bg-[var(--color-brand-soft)]"
-                              : "border-[var(--color-border)] bg-white hover:border-[var(--color-border-strong)]"
+                              : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]"
                           }`}
                         >
                           <span>

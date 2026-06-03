@@ -24,11 +24,22 @@ export const metadata: Metadata = {
     "Your personal health intelligence. Records, metrics, insights, and a one-tap share for emergencies.",
 };
 
+// Applies the saved/system theme to <html> before first paint, so there's
+// no light-mode flash. Kept tiny and dependency-free; runs synchronously.
+const themeScript = `(function(){try{var e=localStorage.getItem('theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(e==='dark'||(!e&&m)){document.documentElement.classList.add('dark');}}catch(_){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable}`}>
+    <html
+      lang="en"
+      className={`${sans.variable} ${display.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-screen">
         <Nav />
         <main className="mx-auto max-w-6xl px-5 py-10 sm:py-14">{children}</main>
