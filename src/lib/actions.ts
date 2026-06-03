@@ -58,7 +58,7 @@ export async function createRecord(input: {
  * (never overwrites an existing profile).
  */
 export type IngestResult =
-  | { ok: true; parsed: boolean; labValues: number }
+  | { ok: true; parsed: boolean; labValues: number; parseError?: string }
   | { ok: false; error: string };
 
 export async function ingestRecord(input: {
@@ -90,13 +90,15 @@ export async function ingestRecord(input: {
     // record still saves, just unparsed.
     let parsed: ParsedDocument | null = null;
     let parseStatus: "parsed" | "failed" = "failed";
+    let parseError: string | undefined;
     if (ext === "pdf") {
       try {
         const { parsePdf } = await import("medical-parser");
         parsed = await parsePdf(Buffer.from(rawBytes));
         parseStatus = "parsed";
       } catch (e) {
-        console.warn("[ingest] parse failed:", (e as Error)?.message ?? e);
+        parseError = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+        console.warn("[ingest] parse failed:", parseError);
       }
     }
 
@@ -169,7 +171,7 @@ export async function ingestRecord(input: {
     revalidatePath("/emergency");
     revalidatePath("/metrics");
     revalidatePath("/");
-    return { ok: true, parsed: !!parsed, labValues: labCount };
+    return { ok: true, parsed: !!parsed, labValues: labCount, parseError };
   } catch (e) {
     // Surface the real message to the client (prod redacts thrown errors).
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

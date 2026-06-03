@@ -60,8 +60,8 @@ export default function RecordsToolbar({
       if (!res.ok) throw new Error(res.error);
       if (!res.parsed) {
         alert(
-          "Uploaded — but the file couldn't be auto-parsed, so it's saved as " +
-            "'Pending review' with no metrics. (You can still view the file.)",
+          "Uploaded — but parsing failed, so it's saved as 'Pending review'.\n\n" +
+            (res.parseError ? `Reason: ${res.parseError}` : "No reason returned."),
         );
       }
       router.refresh();
