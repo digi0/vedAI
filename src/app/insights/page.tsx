@@ -6,6 +6,9 @@ const toneOf = (sev: string) =>
   sev === "alert" ? "alert" : sev === "watch" ? "warn" : "ok";
 
 export const dynamic = "force-dynamic";
+// The Claude insight call can take several seconds; raise the function
+// timeout above Vercel's 10s default so it isn't killed mid-generation.
+export const maxDuration = 60;
 
 export default async function Insights() {
   const insights = await listInsights();

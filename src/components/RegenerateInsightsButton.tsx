@@ -13,7 +13,11 @@ export default function RegenerateInsightsButton() {
     setError(null);
     startTransition(async () => {
       try {
-        await regenerateInsights();
+        const res = await regenerateInsights();
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed");

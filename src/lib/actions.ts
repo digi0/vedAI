@@ -202,26 +202,32 @@ export async function logMetric(input: {
 
 // ---------- insights (LLM) ----------
 
+export type InsightsResult =
+  | { ok: true; count: number }
+  | { ok: false; error: string };
+
 /**
- * Pull profile + parsed records + metrics, call the LLM (Ollama), and
- * replace the user's stored insights. Sends only abnormal lab values
- * to keep the prompt within llama3:8b's 8K context window.
+ * Pull profile + parsed records + metrics, call the LLM (Claude in prod,
+ * Ollama in dev), and replace the user's stored insights. Sends only
+ * abnormal lab values to keep the prompt compact. Returns the real error
+ * to the client (prod redacts thrown server-action errors).
  */
-export async function regenerateInsights() {
-  const userId = await requireUserId();
-  const sb = serverAdmin();
+export async function regenerateInsights(): Promise<InsightsResult> {
+  try {
+    const userId = await requireUserId();
+    const sb = serverAdmin();
 
-  const [profile, metrics, recordsRes] = await Promise.all([
-    getProfile(),
-    listMetrics(),
-    sb
-      .from("records")
-      .select("type, title, record_date, summary, parsed_data")
-      .eq("user_id", userId)
-      .order("record_date", { ascending: false }),
-  ]);
+    const [profile, metrics, recordsRes] = await Promise.all([
+      getProfile(),
+      listMetrics(),
+      sb
+        .from("records")
+        .select("type, title, record_date, summary, parsed_data")
+        .eq("user_id", userId)
+        .order("record_date", { ascending: false }),
+    ]);
 
-  if (recordsRes.error) throw new Error(recordsRes.error.message);
+    if (recordsRes.error) throw new Error(recordsRes.error.message);
 
   // Trim each record's parsed_data — only keep abnormal lab values so the
   // prompt fits comfortably in the model's context.
@@ -289,6 +295,10 @@ export async function regenerateInsights() {
 
   revalidatePath("/insights");
   revalidatePath("/");
+    return { ok: true, count: insights.length };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // ---------- pharmacy ----------
