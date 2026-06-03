@@ -16,6 +16,8 @@ function isPublic(pathname: string): boolean {
   // (the owner's link manager) is NOT public.
   if (pathname.startsWith("/share/")) return true;
   if (pathname.startsWith("/auth/")) return true; // callback routes
+  // API routes do their own auth (session, Twilio signature, etc.).
+  if (pathname.startsWith("/api/")) return true;
   return false;
 }
 

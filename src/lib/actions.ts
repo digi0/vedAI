@@ -15,7 +15,7 @@ import type { ParsedDocument } from "medical-parser";
 import { serverAdmin, requireUserId } from "./supabase";
 import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
-import { bridgeLabValuesToMetrics } from "./metric-bridge";
+import { ingestDocumentBytes } from "./ingest";
 import type { RecordType, DeliveryMethod, OrderItem } from "./types";
 
 // ---------- records ----------
@@ -73,105 +73,32 @@ export async function ingestRecord(input: {
       throw new Error("Invalid file path.");
     }
 
-    const sb = serverAdmin();
-    const ext = input.fileName.split(".").pop()?.toLowerCase() ?? "bin";
-
     // Download the file the client just uploaded (server-side, no body limit).
+    const sb = serverAdmin();
     const { data: blob, error: dlErr } = await sb.storage
       .from("record-files")
       .download(input.path);
     if (dlErr || !blob) {
       throw new Error(`Could not read the uploaded file: ${dlErr?.message ?? "missing"}`);
     }
-    const rawBytes = await blob.arrayBuffer();
 
-    // Parse (best-effort). Dynamic import so a parser load/runtime failure in
-    // the serverless environment is caught here, not at module load — the
-    // record still saves, just unparsed.
-    let parsed: ParsedDocument | null = null;
-    let parseStatus: "parsed" | "failed" = "failed";
-    let parseError: string | undefined;
-    if (ext === "pdf") {
-      try {
-        const { parsePdf } = await import("medical-parser");
-        parsed = await parsePdf(Buffer.from(rawBytes));
-        parseStatus = "parsed";
-      } catch (e) {
-        parseError = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
-        console.warn("[ingest] parse failed:", parseError);
-      }
-    }
-
-    const recordType: RecordType =
-      parsed && parsed.type !== "other" ? (parsed.type as RecordType) : "lab";
-    const today = new Date().toISOString().slice(0, 10);
-    const title = parsed?.title || input.fileName.replace(/\.[^.]+$/, "");
-
-    // Strip rawText — the file already lives in Storage.
-    const parsedToStore = parsed
-      ? (() => {
-          const { rawText: _drop, ...rest } = parsed;
-          return rest;
-        })()
-      : null;
-
-    const { error: insErr } = await sb.from("records").insert({
-      user_id: userId,
-      type: recordType,
-      title,
-      doctor: parsed?.doctor ?? null,
-      facility: parsed?.facility ?? null,
-      record_date: parsed?.date ?? today,
-      summary: parsed?.summary || "Pending review.",
-      file_path: input.path,
-      parsed_data: parsedToStore,
-      parse_status: parseStatus,
+    const out = await ingestDocumentBytes({
+      userId,
+      bytes: await blob.arrayBuffer(),
+      fileName: input.fileName,
+      storedPath: input.path,
     });
-    if (insErr) throw new Error(`DB insert failed: ${insErr.message}`);
-
-    // Seed profile from parsed patient info IF the profile is empty.
-    if (parsed?.patient?.name) {
-      const existing = await getProfile().catch(() => null);
-      if (!existing || !existing.name) {
-        const dob = parsed.patient.age
-          ? `${new Date().getFullYear() - parsed.patient.age}-01-01`
-          : null;
-        await sb.from("profiles").upsert({
-          user_id: userId,
-          full_name: parsed.patient.name,
-          dob,
-          allergies: [],
-          conditions: [],
-          medications: [],
-          emergency_contacts: [],
-          insurance: null,
-          primary_doctor: null,
-        });
-      }
-    }
-
-    // Bridge parsed lab values → metrics_readings so charts auto-populate.
-    let labCount = 0;
-    if (parsed?.labValues?.length) {
-      const readings = bridgeLabValuesToMetrics(parsed.labValues, parsed.date ?? today);
-      labCount = readings.length;
-      if (readings.length > 0) {
-        await sb.from("metrics_readings").insert(
-          readings.map((r) => ({
-            user_id: userId,
-            key: r.key,
-            value: r.value,
-            taken_at: r.takenAt,
-          })),
-        );
-      }
-    }
 
     revalidatePath("/records");
     revalidatePath("/emergency");
     revalidatePath("/metrics");
     revalidatePath("/");
-    return { ok: true, parsed: !!parsed, labValues: labCount, parseError };
+    return {
+      ok: true,
+      parsed: out.parsed,
+      labValues: out.labValues,
+      parseError: out.parseError,
+    };
   } catch (e) {
     // Surface the real message to the client (prod redacts thrown errors).
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
