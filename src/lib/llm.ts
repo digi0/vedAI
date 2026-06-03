@@ -118,7 +118,7 @@ export class OllamaProvider implements LLMProvider {
 export class AnthropicProvider implements LLMProvider {
   async generateInsights(ctx: PatientContext): Promise<Insight[]> {
     const client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
-    const model = process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-latest";
+    const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 
     const msg = await client.messages.create({
       model,
