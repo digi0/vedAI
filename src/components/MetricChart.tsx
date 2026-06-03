@@ -1,24 +1,22 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import type { MetricSeries } from "@/lib/types";
 
 /**
- * Range-anchored metric chart (SVG).
- *
- *  ┌─ HbA1c ─────────────────────── 5.9 % · 🔴 high ──┐
- *  │                                                  │
- *  │   LOW    ░░░ healthy ░░░    HIGH                │
- *  │   ┌─────┬───────────────┬─────────┐              │
- *  │   │     │░░░░░░░░░░░░░░░│       ● │  ← you      │
- *  │   └─────┴───────────────┴─────────┘              │
- *  │  2.8   4.0             5.7      7.0              │
- *  └──────────────────────────────────────────────────┘
- *
- *  If 2+ readings exist, a small trend sparkline appears below.
+ * Range-anchored metric card: a horizontal gauge showing where the latest
+ * reading sits vs the healthy band, an animated count-up value, a trend
+ * delta when there's history, and a gradient area sparkline.
  */
 export default function MetricChart({ series }: { series: MetricSeries }) {
-  if (series.points.length === 0) return <EmptyMetric series={series} />;
+  const hasData = series.points.length > 0;
+  const last = hasData ? series.points[series.points.length - 1]! : null;
+  const first = hasData ? series.points[0]! : null;
+  const lastValue = last ? last.value : 0;
+  // Hook must run unconditionally — keep it above the early return.
+  const animated = useCountUp(lastValue);
 
-  const last = series.points[series.points.length - 1]!;
-  const lastValue = last.value;
+  if (!hasData || !last || !first) return <EmptyMetric series={series} />;
 
   const [healthyLo, healthyHi] = series.healthyRange ?? [
     Math.min(...series.points.map((p) => p.value)),
@@ -45,14 +43,15 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
       ? "var(--color-alert-soft)"
       : "var(--color-warn-soft)";
 
-  // SVG geometry
+  const delta = lastValue - first.value;
+  const hasTrend = series.points.length > 1 && Math.abs(delta) > 1e-9;
+
   const W = 320;
   const H = 100;
   const padX = 16;
   const trackY = 50;
   const trackH = 20;
-  const x = (v: number) =>
-    padX + ((v - scaleMin) / scaleSpan) * (W - padX * 2);
+  const x = (v: number) => padX + ((v - scaleMin) / scaleSpan) * (W - padX * 2);
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
@@ -60,15 +59,23 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
         <div>
           <div className="text-xs text-[var(--color-fg-dim)]">{series.label}</div>
           <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="text-2xl font-semibold">{fmt(lastValue)}</span>
+            <span className="font-display text-3xl tabular-nums">{fmt(animated)}</span>
             <span className="text-xs text-[var(--color-fg-muted)]">{series.unit}</span>
           </div>
-          <div className="mt-0.5 text-xs text-[var(--color-fg-dim)]">
-            {new Date(last.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--color-fg-dim)]">
+            <span>
+              {new Date(last.date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+            {hasTrend && (
+              <span className="text-[var(--color-fg-muted)]">
+                {delta > 0 ? "▲" : "▼"} {fmt(Math.abs(delta))} since{" "}
+                {new Date(first.date).toLocaleDateString("en-US", { month: "short" })}
+              </span>
+            )}
           </div>
         </div>
         <span
@@ -79,146 +86,32 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
         </span>
       </div>
 
-      {/* The chart */}
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: "auto" }}>
-        {/* Zone labels above the track */}
-        <text
-          x={x(scaleMin) + 4}
-          y={trackY - 8}
-          fontSize={9}
-          fill="var(--color-warn)"
-          fontWeight={500}
-        >
+        <text x={x(scaleMin) + 4} y={trackY - 8} fontSize={9} fill="var(--color-warn)" fontWeight={500}>
           LOW
         </text>
-        <text
-          x={(x(healthyLo) + x(healthyHi)) / 2}
-          y={trackY - 8}
-          fontSize={9}
-          fill="var(--color-ok)"
-          fontWeight={500}
-          textAnchor="middle"
-        >
+        <text x={(x(healthyLo) + x(healthyHi)) / 2} y={trackY - 8} fontSize={9} fill="var(--color-ok)" fontWeight={500} textAnchor="middle">
           NORMAL
         </text>
-        <text
-          x={x(scaleMax) - 4}
-          y={trackY - 8}
-          fontSize={9}
-          fill="var(--color-alert)"
-          fontWeight={500}
-          textAnchor="end"
-        >
+        <text x={x(scaleMax) - 4} y={trackY - 8} fontSize={9} fill="var(--color-alert)" fontWeight={500} textAnchor="end">
           HIGH
         </text>
 
-        {/* Track baseline (full width) */}
-        <rect
-          x={padX}
-          y={trackY}
-          width={W - padX * 2}
-          height={trackH}
-          rx={4}
-          fill="var(--color-surface-2)"
-          stroke="var(--color-border)"
-        />
-        {/* Healthy band */}
-        <rect
-          x={x(healthyLo)}
-          y={trackY}
-          width={x(healthyHi) - x(healthyLo)}
-          height={trackH}
-          rx={4}
-          fill="var(--color-brand-soft)"
-        />
+        <rect x={padX} y={trackY} width={W - padX * 2} height={trackH} rx={4} fill="var(--color-surface-2)" stroke="var(--color-border)" />
+        <rect x={x(healthyLo)} y={trackY} width={x(healthyHi) - x(healthyLo)} height={trackH} rx={4} fill="var(--color-brand-soft)" />
 
-        {/* Boundary tick lines */}
-        <line
-          x1={x(healthyLo)}
-          y1={trackY - 2}
-          x2={x(healthyLo)}
-          y2={trackY + trackH + 2}
-          stroke="var(--color-brand)"
-          strokeWidth={1.5}
-        />
-        <line
-          x1={x(healthyHi)}
-          y1={trackY - 2}
-          x2={x(healthyHi)}
-          y2={trackY + trackH + 2}
-          stroke="var(--color-brand)"
-          strokeWidth={1.5}
-        />
+        <line x1={x(healthyLo)} y1={trackY - 2} x2={x(healthyLo)} y2={trackY + trackH + 2} stroke="var(--color-brand)" strokeWidth={1.5} />
+        <line x1={x(healthyHi)} y1={trackY - 2} x2={x(healthyHi)} y2={trackY + trackH + 2} stroke="var(--color-brand)" strokeWidth={1.5} />
 
-        {/* Axis labels */}
-        <text
-          x={x(scaleMin)}
-          y={trackY + trackH + 14}
-          fontSize={10}
-          fill="var(--color-fg-dim)"
-          textAnchor="middle"
-        >
-          {fmt(scaleMin)}
-        </text>
-        <text
-          x={x(healthyLo)}
-          y={trackY + trackH + 14}
-          fontSize={10}
-          fill="var(--color-brand)"
-          fontWeight={500}
-          textAnchor="middle"
-        >
-          {fmt(healthyLo)}
-        </text>
-        <text
-          x={x(healthyHi)}
-          y={trackY + trackH + 14}
-          fontSize={10}
-          fill="var(--color-brand)"
-          fontWeight={500}
-          textAnchor="middle"
-        >
-          {fmt(healthyHi)}
-        </text>
-        <text
-          x={x(scaleMax)}
-          y={trackY + trackH + 14}
-          fontSize={10}
-          fill="var(--color-fg-dim)"
-          textAnchor="middle"
-        >
-          {fmt(scaleMax)}
-        </text>
+        <text x={x(scaleMin)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-fg-dim)" textAnchor="middle">{fmt(scaleMin)}</text>
+        <text x={x(healthyLo)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-brand-strong)" fontWeight={500} textAnchor="middle">{fmt(healthyLo)}</text>
+        <text x={x(healthyHi)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-brand-strong)" fontWeight={500} textAnchor="middle">{fmt(healthyHi)}</text>
+        <text x={x(scaleMax)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-fg-dim)" textAnchor="middle">{fmt(scaleMax)}</text>
 
-        {/* Latest value marker */}
         <g>
-          {/* Drop line */}
-          <line
-            x1={x(lastValue)}
-            y1={trackY - 6}
-            x2={x(lastValue)}
-            y2={trackY + trackH + 6}
-            stroke={flagColor}
-            strokeWidth={2}
-          />
-          {/* Dot */}
-          <circle
-            cx={x(lastValue)}
-            cy={trackY + trackH / 2}
-            r={6}
-            fill={flagColor}
-            stroke="white"
-            strokeWidth={2}
-          />
-          {/* Value label below */}
-          <text
-            x={x(lastValue)}
-            y={H - 4}
-            fontSize={11}
-            fill={flagColor}
-            fontWeight={600}
-            textAnchor="middle"
-          >
+          <line x1={x(lastValue)} y1={trackY - 6} x2={x(lastValue)} y2={trackY + trackH + 6} stroke={flagColor} strokeWidth={2} />
+          <circle cx={x(lastValue)} cy={trackY + trackH / 2} r={6} fill={flagColor} stroke="var(--color-surface)" strokeWidth={2} />
+          <text x={x(lastValue)} y={H - 4} fontSize={11} fill={flagColor} fontWeight={600} textAnchor="middle">
             you · {fmt(lastValue)}
           </text>
         </g>
@@ -241,35 +134,36 @@ function Sparkline({
   healthyHi: number;
 }) {
   const w = 320;
-  const h = 38;
+  const h = 40;
   const pad = 4;
+  const id = `spark-${series.key}`;
   const values = series.points.map((p) => p.value);
   const sMin = Math.min(...values, healthyLo);
   const sMax = Math.max(...values, healthyHi);
   const range = sMax - sMin || 1;
-  const x = (i: number) =>
-    pad + (i * (w - pad * 2)) / Math.max(series.points.length - 1, 1);
+  const x = (i: number) => pad + (i * (w - pad * 2)) / Math.max(series.points.length - 1, 1);
   const y = (v: number) => h - pad - ((v - sMin) / range) * (h - pad * 2);
-  const path = series.points
-    .map((p, i) =>
-      `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`,
-    )
+  const line = series.points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`)
     .join(" ");
+  const area = `${line} L ${x(series.points.length - 1).toFixed(1)} ${h - pad} L ${pad} ${h - pad} Z`;
+
   return (
     <div className="mt-4 border-t border-[var(--color-border)] pt-2">
       <div className="mb-0.5 text-[10px] uppercase tracking-wider text-[var(--color-fg-dim)]">
         Trend · {series.points.length} readings
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} className="h-10 w-full">
-        <rect
-          x={0}
-          y={y(healthyHi)}
-          width={w}
-          height={Math.max(y(healthyLo) - y(healthyHi), 0)}
-          fill="var(--color-brand-soft)"
-        />
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-brand)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill={`url(#${id})`} />
         <path
-          d={path}
+          d={line}
+          className="draw-line"
           fill="none"
           stroke="var(--color-brand)"
           strokeWidth={1.5}
@@ -296,6 +190,28 @@ function EmptyMetric({ series }: { series: MetricSeries }) {
       )}
     </div>
   );
+}
+
+/** Count up to `target` once on mount (eased). */
+function useCountUp(target: number, ms = 750): number {
+  const [v, setV] = useState(0);
+  const started = useRef(false);
+  useEffect(() => {
+    started.current = false;
+    let raf = 0;
+    let t0 = 0;
+    const ease = (k: number) => 1 - Math.pow(1 - k, 3);
+    const tick = (t: number) => {
+      if (!t0) t0 = t;
+      const k = Math.min(1, (t - t0) / ms);
+      setV(target * ease(k));
+      if (k < 1) raf = requestAnimationFrame(tick);
+      else setV(target);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms]);
+  return v;
 }
 
 function fmt(v: number): string {

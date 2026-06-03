@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.100.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
+    "lucide-react": "^1.17.0",
     "medical-parser": "file:vendor/medical-parser-0.1.1.tgz",
     "next": "16.2.6",
     "pdf-parse": "^2.4.5",

@@ -1,12 +1,21 @@
 import type { MedicalRecord } from "@/lib/types";
 import { Badge } from "./Card";
+import {
+  FlaskConical,
+  Pill,
+  ScanLine,
+  Stethoscope,
+  Syringe,
+  Paperclip,
+  type LucideIcon,
+} from "lucide-react";
 
-const typeIcon: Record<string, string> = {
-  lab: "🧪",
-  prescription: "℞",
-  imaging: "🩻",
-  visit: "🩺",
-  vaccination: "💉",
+const typeIcon: Record<string, LucideIcon> = {
+  lab: FlaskConical,
+  prescription: Pill,
+  imaging: ScanLine,
+  visit: Stethoscope,
+  vaccination: Syringe,
 };
 
 const typeLabel: Record<string, string> = {
@@ -18,10 +27,11 @@ const typeLabel: Record<string, string> = {
 };
 
 export default function RecordItem({ record }: { record: MedicalRecord }) {
+  const Icon = typeIcon[record.type] ?? FlaskConical;
   return (
-    <article className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition hover:border-[var(--color-border-strong)]">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-2)] text-lg">
-        <span aria-hidden>{typeIcon[record.type]}</span>
+    <article className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition hover:border-[var(--color-border-strong)]">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand)]">
+        <Icon size={18} aria-hidden />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -29,7 +39,10 @@ export default function RecordItem({ record }: { record: MedicalRecord }) {
           <Badge tone="brand">{typeLabel[record.type]}</Badge>
         </div>
         <div className="mt-0.5 text-sm text-[var(--color-fg-muted)]">
-          {record.doctor} · {record.facility} ·{" "}
+          {[record.doctor, record.facility]
+            .filter(Boolean)
+            .join(" · ")}
+          {(record.doctor || record.facility) && " · "}
           {new Date(record.date).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
@@ -38,8 +51,9 @@ export default function RecordItem({ record }: { record: MedicalRecord }) {
         </div>
         <p className="mt-2 text-sm text-[var(--color-fg)]">{record.summary}</p>
         {record.fileName && (
-          <div className="mt-2 text-xs text-[var(--color-fg-dim)]">
-            📎 {record.fileName}
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-fg-dim)]">
+            <Paperclip size={12} aria-hidden />
+            {record.fileName.split("/").pop()}
           </div>
         )}
       </div>
