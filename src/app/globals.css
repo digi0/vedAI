@@ -30,8 +30,11 @@
   --color-alert: #b91c1c;
   --color-alert-soft: #fde4e4;
 
-  --font-sans: var(--font-sans);
-  --font-display: var(--font-display);
+  /* Fully native: the OS system font — SF Pro on iOS, Roboto on Android,
+     Segoe on Windows. Display uses the same stack, just heavier + tighter. */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-sans);
 }
 
 /* ── Dark theme ──────────────────────────────────────────────
@@ -82,8 +85,32 @@ body {
   line-height: 1.6;
 }
 
+/* iOS large-title feel: heavy weight, tight tracking on the system font. */
 .font-display {
-  letter-spacing: -0.018em;
+  font-weight: 700;
+  letter-spacing: -0.021em;
+}
+
+/* Native tap feedback — controls depress slightly and dim, like UIKit/Material.
+   Pointer-coarse only, so desktop hover stays clean. */
+@media (pointer: coarse) {
+  button:active,
+  a:active,
+  [role="button"]:active,
+  label:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+}
+
+/* Don't let the page rubber-band/scroll-chain behind sheets and the tab bar. */
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Tap highlight is the web's, not the OS's — remove it; we render our own. */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 *:focus-visible {
