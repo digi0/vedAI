@@ -54,7 +54,7 @@ export default function RecordItem({
         <p className="mt-2 text-sm text-[var(--color-fg)]">{record.summary}</p>
         {record.fileName &&
           (enablePreview ? (
-            <RecordFilePreview filePath={record.fileName} />
+            <RecordFilePreview recordId={record.id} fileName={record.fileName} />
           ) : (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-fg-dim)]">
               <Paperclip size={12} aria-hidden />

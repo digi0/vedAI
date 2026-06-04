@@ -1,50 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Paperclip, X, ExternalLink, Loader2 } from "lucide-react";
-import { getRecordFileUrl } from "@/lib/actions";
 
-// Force a correct content-type from the extension — Storage objects are
-// sometimes served as octet-stream, which the browser won't render inline.
-const MIME: Record<string, string> = {
-  pdf: "application/pdf",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  gif: "image/gif",
-  heic: "image/heic",
-  bmp: "image/bmp",
-};
+const IMAGE_EXT = ["jpg", "jpeg", "png", "webp", "gif", "heic", "bmp"];
 
 /**
- * "View file" chip. On click it gets a short-lived signed URL (ownership-
- * checked), fetches the file, and renders it from a same-origin blob: URL —
- * which sidesteps cross-origin framing / content-disposition issues that
- * otherwise leave the preview blank. Images show inline; everything else
- * (PDFs) renders in an iframe. The signed URL is kept only for "open in new
- * tab" (a blob: URL would be revoked when the modal closes).
+ * "View file" chip. Opens a modal instantly and streams the file from our own
+ * `/api/records/[id]/file` route (same-origin, inline) — so images and PDFs
+ * render directly with no client-side download step. A spinner shows until the
+ * content finishes loading.
  */
-export default function RecordFilePreview({ filePath }: { filePath: string }) {
+export default function RecordFilePreview({
+  recordId,
+  fileName,
+}: {
+  recordId: string;
+  fileName: string;
+}) {
   const t = useTranslations("records");
   const [open, setOpen] = useState(false);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [mime, setMime] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const blobRef = useRef<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  const ext = (filePath.split(".").pop() ?? "").toLowerCase();
-
-  function revoke() {
-    if (blobRef.current) {
-      URL.revokeObjectURL(blobRef.current);
-      blobRef.current = null;
-    }
-  }
-  useEffect(() => revoke, []); // revoke on unmount
+  const ext = (fileName.split(".").pop() ?? "").toLowerCase();
+  const isImage = IMAGE_EXT.includes(ext);
+  const src = `/api/records/${recordId}/file`;
 
   useEffect(() => {
     if (!open) return;
@@ -59,56 +40,21 @@ export default function RecordFilePreview({ filePath }: { filePath: string }) {
     };
   }, [open]);
 
-  async function openPreview() {
-    if (loading) return;
-    setError(false);
-    setLoading(true);
-    try {
-      const res = await getRecordFileUrl(filePath);
-      if (!res.ok) throw new Error(res.error);
-      const r = await fetch(res.url);
-      if (!r.ok) throw new Error("fetch failed");
-      const raw = await r.blob();
-      const type = MIME[ext] || raw.type || "application/octet-stream";
-      const blob = raw.type === type ? raw : new Blob([raw], { type });
-      revoke();
-      const obj = URL.createObjectURL(blob);
-      blobRef.current = obj;
-      setBlobUrl(obj);
-      setSignedUrl(res.url);
-      setMime(type);
-      setOpen(true);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const isImage = mime.startsWith("image/");
-
   return (
     <>
       <button
         type="button"
-        onClick={openPreview}
-        disabled={loading}
-        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-fg-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)] disabled:opacity-60"
+        onClick={() => {
+          setLoaded(false);
+          setOpen(true);
+        }}
+        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-fg-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
       >
-        {loading ? (
-          <Loader2 size={12} className="animate-spin" />
-        ) : (
-          <Paperclip size={12} aria-hidden />
-        )}
+        <Paperclip size={12} aria-hidden />
         {t("viewFile")}
       </button>
-      {error && (
-        <div className="mt-1 text-xs text-[var(--color-alert)]">
-          {t("previewError")}
-        </div>
-      )}
 
-      {open && blobUrl && (
+      {open && (
         <div
           className="fixed inset-0 z-[60] flex flex-col bg-black/80 p-3 sm:p-6"
           onClick={() => setOpen(false)}
@@ -118,16 +64,14 @@ export default function RecordFilePreview({ filePath }: { filePath: string }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 pb-2 text-white">
-              {signedUrl && (
-                <a
-                  href={signedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm underline-offset-2 hover:underline"
-                >
-                  <ExternalLink size={14} /> {t("openInNewTab")}
-                </a>
-              )}
+              <a
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm underline-offset-2 hover:underline"
+              >
+                <ExternalLink size={14} /> {t("openInNewTab")}
+              </a>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -137,12 +81,27 @@ export default function RecordFilePreview({ filePath }: { filePath: string }) {
                 <X size={18} />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-white">
+            <div className="relative min-h-0 flex-1 overflow-auto rounded-lg bg-white">
+              {!loaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 size={28} className="animate-spin text-[var(--color-brand)]" />
+                </div>
+              )}
               {isImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={blobUrl} alt="" className="mx-auto h-auto max-w-full" />
+                <img
+                  src={src}
+                  alt=""
+                  onLoad={() => setLoaded(true)}
+                  className="mx-auto h-auto max-w-full"
+                />
               ) : (
-                <iframe src={blobUrl} title="preview" className="h-full w-full" />
+                <iframe
+                  src={src}
+                  title="preview"
+                  onLoad={() => setLoaded(true)}
+                  className="h-full w-full"
+                />
               )}
             </div>
           </div>
