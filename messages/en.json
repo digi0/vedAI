@@ -100,6 +100,9 @@
     "openInNewTab": "Open in new tab",
     "closePreview": "Close preview",
     "previewError": "Couldn’t open this file. Try again.",
+    "remove": "Remove",
+    "removeConfirm": "Remove this record? This can’t be undone.",
+    "removeError": "Couldn’t remove. Try again.",
     "filters": {
       "all": "All",
       "lab": "Labs",

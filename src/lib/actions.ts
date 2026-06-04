@@ -135,6 +135,47 @@ export async function getRecordFileUrl(
   }
 }
 
+/**
+ * Delete a record and its stored file. Service-role write, but always scoped
+ * to the authenticated user's id (never trusted input), so a user can only
+ * ever delete their own record.
+ */
+export async function deleteRecord(
+  recordId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    const sb = serverAdmin();
+
+    const { data, error } = await sb
+      .from("records")
+      .select("id, file_path")
+      .eq("id", recordId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return { ok: false, error: "not_found" };
+
+    if (data.file_path) {
+      // Best-effort: don't block the row delete if the object is already gone.
+      await sb.storage.from("record-files").remove([data.file_path]);
+    }
+
+    const { error: delErr } = await sb
+      .from("records")
+      .delete()
+      .eq("id", recordId)
+      .eq("user_id", userId);
+    if (delErr) throw delErr;
+
+    revalidatePath("/records");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "failed" };
+  }
+}
+
 // ---------- metrics ----------
 
 export async function logMetric(input: {

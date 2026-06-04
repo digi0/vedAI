@@ -2,6 +2,7 @@ import type { MedicalRecord } from "@/lib/types";
 import { useTranslations } from "next-intl";
 import { Badge } from "./Card";
 import RecordFilePreview from "./RecordFilePreview";
+import RemoveRecordButton from "./RemoveRecordButton";
 import {
   FlaskConical,
   Pill,
@@ -61,6 +62,7 @@ export default function RecordItem({
             </div>
           ))}
       </div>
+      {enablePreview && <RemoveRecordButton recordId={record.id} />}
     </article>
   );
 }
