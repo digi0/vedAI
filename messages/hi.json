@@ -96,6 +96,10 @@
     "parseFailedNoReason": "कोई वजह नहीं मिली।",
     "uploadFailed": "अपलोड नहीं हो पाया",
     "signInAgain": "कृपया दोबारा साइन इन करें।",
+    "viewFile": "फ़ाइल देखें",
+    "openInNewTab": "नई टैब में खोलें",
+    "closePreview": "प्रीव्यू बंद करें",
+    "previewError": "यह फ़ाइल नहीं खुल सकी। दोबारा कोशिश करें।",
     "filters": {
       "all": "सभी",
       "lab": "जाँच",

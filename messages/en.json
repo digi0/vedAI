@@ -96,6 +96,10 @@
     "parseFailedNoReason": "No reason returned.",
     "uploadFailed": "Upload failed",
     "signInAgain": "Please sign in again.",
+    "viewFile": "View file",
+    "openInNewTab": "Open in new tab",
+    "closePreview": "Close preview",
+    "previewError": "Couldn’t open this file. Try again.",
     "filters": {
       "all": "All",
       "lab": "Labs",

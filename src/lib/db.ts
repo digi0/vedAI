@@ -104,12 +104,12 @@ function rowToRecord(r: {
   };
 }
 
-/** Signed URL for a stored record file (60s TTL). Storage is service-role. */
+/** Signed URL for a stored record file (5-min TTL). Storage is service-role. */
 export async function signedRecordUrl(filePath: string): Promise<string | null> {
   const sb = serverAdmin();
   const { data, error } = await sb.storage
     .from("record-files")
-    .createSignedUrl(filePath, 60);
+    .createSignedUrl(filePath, 300);
   if (error) return null;
   return data?.signedUrl ?? null;
 }

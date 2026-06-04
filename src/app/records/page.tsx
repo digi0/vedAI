@@ -44,7 +44,7 @@ export default async function Records({
             {t("empty")}
           </div>
         ) : (
-          filtered.map((r) => <RecordItem key={r.id} record={r} />)
+          filtered.map((r) => <RecordItem key={r.id} record={r} enablePreview />)
         )}
       </div>
     </div>

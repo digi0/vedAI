@@ -12,10 +12,10 @@
 
 import { revalidatePath } from "next/cache";
 import type { ParsedDocument } from "medical-parser";
-import { serverAdmin, requireUserId } from "./supabase";
+import { serverAdmin, supabaseServer, requireUserId } from "./supabase";
 import { getLocale } from "next-intl/server";
 import { getLLM, type PatientContext } from "./llm";
-import { getProfile, listMetrics } from "./db";
+import { getProfile, listMetrics, signedRecordUrl } from "./db";
 import { ingestDocumentBytes } from "./ingest";
 import type { RecordType, DeliveryMethod, OrderItem } from "./types";
 
@@ -103,6 +103,35 @@ export async function ingestRecord(input: {
   } catch (e) {
     // Surface the real message to the client (prod redacts thrown errors).
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Short-lived signed URL to preview a record's stored file. Ownership is
+ * verified through the RLS-scoped client (the file_path must belong to a
+ * record the caller owns) before the service-role signed URL is minted, so
+ * one user can never fetch another's file by guessing a path.
+ */
+export async function getRecordFileUrl(
+  filePath: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    await requireUserId();
+    const sb = await supabaseServer();
+    const { data, error } = await sb
+      .from("records")
+      .select("id")
+      .eq("file_path", filePath)
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return { ok: false, error: "not_found" };
+
+    const url = await signedRecordUrl(filePath);
+    if (!url) return { ok: false, error: "no_url" };
+    return { ok: true, url };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "failed" };
   }
 }
 

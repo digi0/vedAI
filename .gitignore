@@ -8,3 +8,6 @@ next-env.d.ts
 
 # Local test documents (not committed)
 test-docs/
+
+# Local-only business/strategy brief (not for the repo)
+VED_AI_CONTEXT.*

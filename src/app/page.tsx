@@ -111,7 +111,9 @@ export default async function Overview() {
                 </p>
               </Card>
             ) : (
-              recentRecords.map((r) => <RecordItem key={r.id} record={r} />)
+              recentRecords.map((r) => (
+                <RecordItem key={r.id} record={r} enablePreview />
+              ))
             )}
           </div>
         </div>

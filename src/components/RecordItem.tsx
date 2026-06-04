@@ -1,6 +1,7 @@
 import type { MedicalRecord } from "@/lib/types";
 import { useTranslations } from "next-intl";
 import { Badge } from "./Card";
+import RecordFilePreview from "./RecordFilePreview";
 import {
   FlaskConical,
   Pill,
@@ -19,7 +20,13 @@ const typeIcon: Record<string, LucideIcon> = {
   vaccination: Syringe,
 };
 
-export default function RecordItem({ record }: { record: MedicalRecord }) {
+export default function RecordItem({
+  record,
+  enablePreview = false,
+}: {
+  record: MedicalRecord;
+  enablePreview?: boolean;
+}) {
   const t = useTranslations("recordTypes");
   const Icon = typeIcon[record.type] ?? FlaskConical;
   return (
@@ -44,12 +51,15 @@ export default function RecordItem({ record }: { record: MedicalRecord }) {
           })}
         </div>
         <p className="mt-2 text-sm text-[var(--color-fg)]">{record.summary}</p>
-        {record.fileName && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-fg-dim)]">
-            <Paperclip size={12} aria-hidden />
-            {record.fileName.split("/").pop()}
-          </div>
-        )}
+        {record.fileName &&
+          (enablePreview ? (
+            <RecordFilePreview filePath={record.fileName} />
+          ) : (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-fg-dim)]">
+              <Paperclip size={12} aria-hidden />
+              {record.fileName.split("/").pop()}
+            </div>
+          ))}
       </div>
     </article>
   );
