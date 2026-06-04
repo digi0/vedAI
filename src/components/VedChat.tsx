@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, ArrowUp } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Sparkles, X, ArrowUp, Mic } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -11,20 +11,99 @@ const SUGGESTIONS = [
   "मेरी रिपोर्ट आसान भाषा में समझाओ",
 ];
 
+// --- Minimal Web Speech API typings (not in lib.dom across all setups) ---
+type SpeechResult = { isFinal: boolean; readonly [i: number]: { transcript: string } };
+type SpeechEvent = { resultIndex: number; results: ArrayLike<SpeechResult> };
+interface SpeechRecognizer {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: SpeechEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+type SpeechRecognizerCtor = new () => SpeechRecognizer;
+
+function getSpeechCtor(): SpeechRecognizerCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognizerCtor;
+    webkitSpeechRecognition?: SpeechRecognizerCtor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
 export default function VedChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Voice intake
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [recLang, setRecLang] = useState<"en-IN" | "hi-IN">("en-IN");
+  const recognizerRef = useRef<SpeechRecognizer | null>(null);
+  const finalRef = useRef(""); // text committed before the live (interim) part
+
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setVoiceSupported(getSpeechCtor() !== null);
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
 
+  const stopListening = useCallback(() => {
+    recognizerRef.current?.stop();
+    recognizerRef.current = null;
+    setListening(false);
+  }, []);
+
+  // Stop mic when the panel closes or the component unmounts.
+  useEffect(() => {
+    if (!open) stopListening();
+    return () => stopListening();
+  }, [open, stopListening]);
+
+  function startListening() {
+    const Ctor = getSpeechCtor();
+    if (!Ctor || busy) return;
+    const rec = new Ctor();
+    rec.lang = recLang;
+    rec.interimResults = true;
+    rec.continuous = false;
+    finalRef.current = input ? input.trimEnd() + " " : "";
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        const t = r[0]?.transcript ?? "";
+        if (r.isFinal) finalRef.current += t;
+        else interim += t;
+      }
+      setInput((finalRef.current + interim).trimStart());
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognizerRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
+
+  function toggleMic() {
+    if (listening) stopListening();
+    else startListening();
+  }
+
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
+    if (listening) stopListening();
     const next: Msg[] = [...messages, { role: "user", content: trimmed }];
     setMessages([...next, { role: "assistant", content: "" }]);
     setInput("");
@@ -158,6 +237,17 @@ export default function VedChat() {
               )}
             </div>
 
+            {/* listening hint */}
+            {listening && (
+              <div className="flex items-center justify-center gap-2 px-4 pb-1 text-xs text-[var(--color-brand)]">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-brand)] opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-brand)]" />
+                </span>
+                Listening{recLang === "hi-IN" ? " (हिंदी)" : ""}… tap mic to stop
+              </div>
+            )}
+
             {/* input */}
             <form
               onSubmit={(e) => {
@@ -166,6 +256,32 @@ export default function VedChat() {
               }}
               className="flex items-end gap-2 border-t border-[var(--color-border)] p-3"
             >
+              {voiceSupported && (
+                <div className="flex shrink-0 flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={toggleMic}
+                    disabled={busy}
+                    aria-label={listening ? "Stop voice input" : "Start voice input"}
+                    aria-pressed={listening}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors disabled:opacity-40 ${
+                      listening
+                        ? "border-transparent bg-[var(--color-alert)] text-white"
+                        : "border-[var(--color-border)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
+                    }`}
+                  >
+                    <Mic size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecLang((l) => (l === "en-IN" ? "hi-IN" : "en-IN"))}
+                    title="Voice language"
+                    className="rounded px-1 text-[10px] font-medium text-[var(--color-fg-dim)] hover:text-[var(--color-fg)]"
+                  >
+                    {recLang === "en-IN" ? "EN" : "हि"}
+                  </button>
+                </div>
+              )}
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -176,7 +292,7 @@ export default function VedChat() {
                   }
                 }}
                 rows={1}
-                placeholder="Ask Ved…"
+                placeholder={listening ? "Speak now…" : "Ask Ved…"}
                 className="max-h-28 flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:border-[var(--color-brand)]"
               />
               <button
