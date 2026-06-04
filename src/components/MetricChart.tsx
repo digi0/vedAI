@@ -1,203 +1,108 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { MetricSeries } from "@/lib/types";
+import {
+  latestValue,
+  metricStatus,
+  STATUS_LABEL,
+  STATUS_COLOR,
+  STATUS_SOFT,
+} from "@/lib/metric-status";
 
 /**
- * Range-anchored metric card: a horizontal gauge showing where the latest
- * reading sits vs the healthy band, an animated count-up value, a trend
- * delta when there's history, and a gradient area sparkline.
+ * Minimal metric card: value + a one-word status chip, and a slim bar with
+ * the healthy zone softly tinted and a single dot for where you sit. No
+ * LOW/NORMAL/HIGH labels, no axis numbers — calm and glanceable.
  */
 export default function MetricChart({ series }: { series: MetricSeries }) {
-  const hasData = series.points.length > 0;
-  const last = hasData ? series.points[series.points.length - 1]! : null;
-  const first = hasData ? series.points[0]! : null;
-  const lastValue = last ? last.value : 0;
-  // Hook must run unconditionally — keep it above the early return.
-  const animated = useCountUp(lastValue);
+  const v = latestValue(series);
+  const animated = useCountUp(v ?? 0); // hook stays unconditional
 
-  if (!hasData || !last || !first) return <EmptyMetric series={series} />;
+  if (v === null) return <EmptyMetric series={series} />;
 
-  const [healthyLo, healthyHi] = series.healthyRange ?? [
-    Math.min(...series.points.map((p) => p.value)),
-    Math.max(...series.points.map((p) => p.value)),
-  ];
-  const allValues = series.points.map((p) => p.value);
-  const bandSpan = healthyHi - healthyLo || 1;
-  const pad = bandSpan * 0.45;
-  const scaleMin = Math.min(healthyLo - pad, Math.min(...allValues) - bandSpan * 0.1);
-  const scaleMax = Math.max(healthyHi + pad, Math.max(...allValues) + bandSpan * 0.1);
-  const scaleSpan = scaleMax - scaleMin || 1;
+  const status = metricStatus(series);
+  const color = STATUS_COLOR[status];
+  const [lo, hi] = series.healthyRange ?? [v, v];
 
-  const inRange = lastValue >= healthyLo && lastValue <= healthyHi;
-  const above = lastValue > healthyHi;
-  const flag = inRange ? "in range" : above ? "high" : "low";
-  const flagColor = inRange
-    ? "var(--color-ok)"
-    : above
-      ? "var(--color-alert)"
-      : "var(--color-warn)";
-  const flagBg = inRange
-    ? "var(--color-ok-soft)"
-    : above
-      ? "var(--color-alert-soft)"
-      : "var(--color-warn-soft)";
+  // Position scale: pad around the healthy band, always include the value.
+  const span = hi - lo || Math.abs(v) || 1;
+  const pad = span * 0.5;
+  const min = Math.min(lo - pad, v - span * 0.15);
+  const max = Math.max(hi + pad, v + span * 0.15);
+  const pct = (x: number) =>
+    Math.max(0, Math.min(100, ((x - min) / (max - min || 1)) * 100));
 
-  const delta = lastValue - first.value;
-  const hasTrend = series.points.length > 1 && Math.abs(delta) > 1e-9;
-
-  const W = 320;
-  const H = 100;
-  const padX = 16;
-  const trackY = 50;
-  const trackH = 20;
-  const x = (v: number) => padX + ((v - scaleMin) / scaleSpan) * (W - padX * 2);
+  const trend =
+    series.points.length > 1 ? v - series.points[0]!.value : null;
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div>
-          <div className="text-xs text-[var(--color-fg-dim)]">{series.label}</div>
-          <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="font-display text-3xl tabular-nums">{fmt(animated)}</span>
-            <span className="text-xs text-[var(--color-fg-muted)]">{series.unit}</span>
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate text-sm text-[var(--color-fg-muted)]">
+            {series.label}
           </div>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--color-fg-dim)]">
-            <span>
-              {new Date(last.date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
-            {hasTrend && (
-              <span className="text-[var(--color-fg-muted)]">
-                {delta > 0 ? "▲" : "▼"} {fmt(Math.abs(delta))} since{" "}
-                {new Date(first.date).toLocaleDateString("en-US", { month: "short" })}
-              </span>
-            )}
+          <div className="mt-0.5 flex items-baseline gap-1">
+            <span className="font-display text-2xl tabular-nums">{fmt(animated)}</span>
+            <span className="text-xs text-[var(--color-fg-muted)]">{series.unit}</span>
           </div>
         </div>
         <span
-          className="rounded-full px-2 py-0.5 text-xs font-medium"
-          style={{ color: flagColor, backgroundColor: flagBg }}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+          style={{ color, backgroundColor: STATUS_SOFT[status] }}
         >
-          {flag}
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+          {STATUS_LABEL[status]}
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: "auto" }}>
-        <text x={x(scaleMin) + 4} y={trackY - 8} fontSize={9} fill="var(--color-warn)" fontWeight={500}>
-          LOW
-        </text>
-        <text x={(x(healthyLo) + x(healthyHi)) / 2} y={trackY - 8} fontSize={9} fill="var(--color-ok)" fontWeight={500} textAnchor="middle">
-          NORMAL
-        </text>
-        <text x={x(scaleMax) - 4} y={trackY - 8} fontSize={9} fill="var(--color-alert)" fontWeight={500} textAnchor="end">
-          HIGH
-        </text>
-
-        <rect x={padX} y={trackY} width={W - padX * 2} height={trackH} rx={4} fill="var(--color-surface-2)" stroke="var(--color-border)" />
-        <rect x={x(healthyLo)} y={trackY} width={x(healthyHi) - x(healthyLo)} height={trackH} rx={4} fill="var(--color-brand-soft)" />
-
-        <line x1={x(healthyLo)} y1={trackY - 2} x2={x(healthyLo)} y2={trackY + trackH + 2} stroke="var(--color-brand)" strokeWidth={1.5} />
-        <line x1={x(healthyHi)} y1={trackY - 2} x2={x(healthyHi)} y2={trackY + trackH + 2} stroke="var(--color-brand)" strokeWidth={1.5} />
-
-        <text x={x(scaleMin)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-fg-dim)" textAnchor="middle">{fmt(scaleMin)}</text>
-        <text x={x(healthyLo)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-brand-strong)" fontWeight={500} textAnchor="middle">{fmt(healthyLo)}</text>
-        <text x={x(healthyHi)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-brand-strong)" fontWeight={500} textAnchor="middle">{fmt(healthyHi)}</text>
-        <text x={x(scaleMax)} y={trackY + trackH + 14} fontSize={10} fill="var(--color-fg-dim)" textAnchor="middle">{fmt(scaleMax)}</text>
-
-        <g>
-          <line x1={x(lastValue)} y1={trackY - 6} x2={x(lastValue)} y2={trackY + trackH + 6} stroke={flagColor} strokeWidth={2} />
-          <circle cx={x(lastValue)} cy={trackY + trackH / 2} r={6} fill={flagColor} stroke="var(--color-surface)" strokeWidth={2} />
-          <text x={x(lastValue)} y={H - 4} fontSize={11} fill={flagColor} fontWeight={600} textAnchor="middle">
-            you · {fmt(lastValue)}
-          </text>
-        </g>
-      </svg>
-
-      {series.points.length > 1 && (
-        <Sparkline series={series} healthyLo={healthyLo} healthyHi={healthyHi} />
-      )}
-    </div>
-  );
-}
-
-function Sparkline({
-  series,
-  healthyLo,
-  healthyHi,
-}: {
-  series: MetricSeries;
-  healthyLo: number;
-  healthyHi: number;
-}) {
-  const w = 320;
-  const h = 40;
-  const pad = 4;
-  const id = `spark-${series.key}`;
-  const values = series.points.map((p) => p.value);
-  const sMin = Math.min(...values, healthyLo);
-  const sMax = Math.max(...values, healthyHi);
-  const range = sMax - sMin || 1;
-  const x = (i: number) => pad + (i * (w - pad * 2)) / Math.max(series.points.length - 1, 1);
-  const y = (v: number) => h - pad - ((v - sMin) / range) * (h - pad * 2);
-  const line = series.points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`)
-    .join(" ");
-  const area = `${line} L ${x(series.points.length - 1).toFixed(1)} ${h - pad} L ${pad} ${h - pad} Z`;
-
-  return (
-    <div className="mt-4 border-t border-[var(--color-border)] pt-2">
-      <div className="mb-0.5 text-[10px] uppercase tracking-wider text-[var(--color-fg-dim)]">
-        Trend · {series.points.length} readings
-      </div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-10 w-full">
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-brand)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill={`url(#${id})`} />
-        <path
-          d={line}
-          className="draw-line"
-          fill="none"
-          stroke="var(--color-brand)"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {/* Slim range bar: track · healthy zone · your dot */}
+      <div className="relative mt-3.5 h-1.5 rounded-full bg-[var(--color-surface-2)]">
+        {series.healthyRange && (
+          <div
+            className="absolute inset-y-0 rounded-full bg-[var(--color-ok-soft)]"
+            style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
+          />
+        )}
+        <div
+          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--color-surface)]"
+          style={{ left: `${pct(v)}%`, backgroundColor: color }}
         />
-        {series.points.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(p.value)} r={2} fill="var(--color-brand)" />
-        ))}
-      </svg>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-xs text-[var(--color-fg-dim)]">
+        <span>
+          {series.healthyRange ? `Normal ${fmt(lo)}–${fmt(hi)}` : " "}
+        </span>
+        {trend !== null && Math.abs(trend) > 1e-9 && (
+          <span title="change since first reading">
+            {trend > 0 ? "↑" : "↓"} {fmt(Math.abs(trend))}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
 function EmptyMetric({ series }: { series: MetricSeries }) {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="text-xs text-[var(--color-fg-dim)]">{series.label}</div>
-      <div className="mt-1 text-sm text-[var(--color-fg-muted)]">No readings yet</div>
-      {series.healthyRange && (
-        <div className="mt-2 text-xs text-[var(--color-fg-dim)]">
-          Healthy: {fmt(series.healthyRange[0])}–{fmt(series.healthyRange[1])} {series.unit}
-        </div>
-      )}
+    <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="text-sm text-[var(--color-fg-muted)]">{series.label}</div>
+      <div className="mt-0.5 font-display text-2xl text-[var(--color-fg-dim)]">—</div>
+      <div className="mt-3 h-1.5 rounded-full bg-[var(--color-surface-2)]" />
+      <div className="mt-2 text-xs text-[var(--color-fg-dim)]">
+        {series.healthyRange
+          ? `Normal ${fmt(series.healthyRange[0])}–${fmt(series.healthyRange[1])} ${series.unit}`
+          : "No readings yet"}
+      </div>
     </div>
   );
 }
 
-/** Count up to `target` once on mount (eased). */
-function useCountUp(target: number, ms = 750): number {
+function useCountUp(target: number, ms = 700): number {
   const [v, setV] = useState(0);
-  const started = useRef(false);
   useEffect(() => {
-    started.current = false;
     let raf = 0;
     let t0 = 0;
     const ease = (k: number) => 1 - Math.pow(1 - k, 3);

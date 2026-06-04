@@ -19,11 +19,20 @@ export type MedicalRecord = {
 
 export type MetricPoint = { date: string; value: number };
 
+export type MetricCategory =
+  | "Vitals"
+  | "Cholesterol"
+  | "Liver"
+  | "Kidney"
+  | "Thyroid"
+  | "Vitamins";
+
 export type MetricSeries = {
-  key: "bp_sys" | "bp_dia" | "weight" | "glucose" | "resting_hr" | "sleep_hrs";
+  key: string;
   label: string;
   unit: string;
   healthyRange?: [number, number];
+  category: MetricCategory;
   points: MetricPoint[];
 };
 
