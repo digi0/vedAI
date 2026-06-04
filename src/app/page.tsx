@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Share2, Pill, HeartPulse } from "lucide-react";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import MetricChart from "@/components/MetricChart";
@@ -15,6 +16,10 @@ export default async function Overview() {
     getProfile(),
     listInsights(),
   ]);
+
+  const t = await getTranslations("overview");
+  const tc = await getTranslations("common");
+  const ti = await getTranslations("insights");
 
   const recentRecords = records.slice(0, 3);
   const featuredMetrics = metrics.filter((m) =>
@@ -38,28 +43,28 @@ export default async function Overview() {
   return (
     <div className="space-y-10">
       <section>
-        <p className="text-base text-[var(--color-fg-muted)]">Hello, {firstName}.</p>
+        <p className="text-base text-[var(--color-fg-muted)]">{t("hello", { name: firstName })}</p>
         <h1 className="mt-1.5 font-display text-4xl leading-[1.1] sm:text-5xl">
-          Your health, in one place.
+          {t("title")}
         </h1>
         <div className="mt-5 flex flex-wrap gap-2.5">
           <Link
             href="/share"
             className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
           >
-            <Share2 size={16} /> Share with doctor
+            <Share2 size={16} /> {t("shareWithDoctor")}
           </Link>
           <Link
             href="/pharmacy"
             className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
           >
-            <Pill size={16} /> Order medication
+            <Pill size={16} /> {t("orderMedication")}
           </Link>
           <Link
             href="/emergency"
             className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
           >
-            <HeartPulse size={16} /> Emergency card
+            <HeartPulse size={16} /> {t("emergencyCard")}
           </Link>
         </div>
       </section>
@@ -73,10 +78,10 @@ export default async function Overview() {
 
       <section>
         <SectionTitle
-          title="Key metrics"
+          title={t("keyMetrics")}
           action={
             <Link href="/metrics" className="text-sm text-[var(--color-brand)] hover:underline">
-              See all →
+              {tc("seeAll")}
             </Link>
           }
         />
@@ -90,11 +95,11 @@ export default async function Overview() {
       <section className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <SectionTitle
-            eyebrow="Recent activity"
-            title="Latest records"
+            eyebrow={t("recentActivity")}
+            title={t("latestRecords")}
             action={
               <Link href="/records" className="text-sm text-[var(--color-brand)] hover:underline">
-                See all →
+                {tc("seeAll")}
               </Link>
             }
           />
@@ -102,7 +107,7 @@ export default async function Overview() {
             {recentRecords.length === 0 ? (
               <Card>
                 <p className="text-sm text-[var(--color-fg-muted)]">
-                  No records yet. Upload your first one from the Records page.
+                  {t("noRecords")}
                 </p>
               </Card>
             ) : (
@@ -111,12 +116,12 @@ export default async function Overview() {
           </div>
         </div>
         <div>
-          <SectionTitle title="Insights" />
+          <SectionTitle title={t("insights")} />
           <div className="space-y-4">
             {topInsights.length === 0 ? (
               <Card>
                 <p className="text-sm text-[var(--color-fg-muted)]">
-                  No insights yet. Generate them from the Insights page.
+                  {t("noInsights")}
                 </p>
               </Card>
             ) : (
@@ -139,7 +144,7 @@ export default async function Overview() {
                               : "ok"
                         }
                       >
-                        {i.severity}
+                        {ti(i.severity)}
                       </Badge>
                     </div>
                     <h3 className="font-medium">{i.title}</h3>
@@ -149,7 +154,7 @@ export default async function Overview() {
               })
             )}
             <Link href="/insights" className="block text-sm text-[var(--color-brand)] hover:underline">
-              All insights →
+              {tc("allInsights")}
             </Link>
           </div>
         </div>

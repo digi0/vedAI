@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { MetricSeries } from "@/lib/types";
 import {
   latestValue,
   metricStatus,
-  STATUS_LABEL,
   STATUS_COLOR,
   STATUS_SOFT,
 } from "@/lib/metric-status";
@@ -16,6 +16,8 @@ import {
  * LOW/NORMAL/HIGH labels, no axis numbers — calm and glanceable.
  */
 export default function MetricChart({ series }: { series: MetricSeries }) {
+  const tStatus = useTranslations("metricStatus");
+  const tMetrics = useTranslations("metrics");
   const v = latestValue(series);
   const animated = useCountUp(v ?? 0); // hook stays unconditional
 
@@ -53,7 +55,7 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
           style={{ color, backgroundColor: STATUS_SOFT[status] }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-          {STATUS_LABEL[status]}
+          {tStatus(status)}
         </span>
       </div>
 
@@ -91,7 +93,9 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
 
       <div className="mt-2 flex items-center justify-between text-xs text-[var(--color-fg-dim)]">
         <span>
-          {series.healthyRange ? `Normal ${fmt(lo)}–${fmt(hi)}` : " "}
+          {series.healthyRange
+            ? tMetrics("normalRange", { lo: fmt(lo), hi: fmt(hi) })
+            : " "}
         </span>
         {trend !== null && Math.abs(trend) > 1e-9 && (
           <span title="change since first reading">
@@ -104,6 +108,7 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
 }
 
 function EmptyMetric({ series }: { series: MetricSeries }) {
+  const tMetrics = useTranslations("metrics");
   return (
     <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <div className="text-sm text-[var(--color-fg-muted)]">{series.label}</div>
@@ -111,8 +116,8 @@ function EmptyMetric({ series }: { series: MetricSeries }) {
       <div className="mt-3 h-1.5 rounded-full bg-[var(--color-surface-2)]" />
       <div className="mt-2 text-xs text-[var(--color-fg-dim)]">
         {series.healthyRange
-          ? `Normal ${fmt(series.healthyRange[0])}–${fmt(series.healthyRange[1])} ${series.unit}`
-          : "No readings yet"}
+          ? `${tMetrics("normalRange", { lo: fmt(series.healthyRange[0]), hi: fmt(series.healthyRange[1]) })} ${series.unit}`
+          : tMetrics("noReadingsYet")}
       </div>
     </div>
   );

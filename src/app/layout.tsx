@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import Nav from "@/components/Nav";
 
@@ -31,20 +33,25 @@ export const viewport: Viewport = {
 // Applies the saved/system theme to <html> before first paint (no flash).
 const themeScript = `(function(){try{var e=localStorage.getItem('theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(e==='dark'||(!e&&m)){document.documentElement.classList.add('dark');}}catch(_){}})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen">
-        <Nav />
-        {/* Bottom padding clears the mobile tab bar (+ iOS home indicator). */}
-        <main className="mx-auto max-w-6xl px-5 py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-12 md:pb-12">
-          {children}
-        </main>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Nav />
+          {/* Bottom padding clears the mobile tab bar (+ iOS home indicator). */}
+          <main className="mx-auto max-w-6xl px-5 py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-12 md:pb-12">
+            {children}
+          </main>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

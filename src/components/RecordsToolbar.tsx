@@ -2,17 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ingestRecord } from "@/lib/actions";
 import { browserClient } from "@/lib/supabase-browser";
 
-const types = [
-  { key: "all", label: "All" },
-  { key: "lab", label: "Labs" },
-  { key: "prescription", label: "Rx" },
-  { key: "imaging", label: "Imaging" },
-  { key: "visit", label: "Visits" },
-  { key: "vaccination", label: "Vaccines" },
-];
+const typeKeys = ["all", "lab", "prescription", "imaging", "visit", "vaccination"] as const;
 
 export default function RecordsToolbar({
   activeType,
@@ -23,6 +17,8 @@ export default function RecordsToolbar({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useTranslations("records");
+  const tc = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
   const [q, setQ] = useState(initialQuery);
@@ -43,7 +39,7 @@ export default function RecordsToolbar({
       const {
         data: { user },
       } = await sb.auth.getUser();
-      if (!user) throw new Error("Please sign in again.");
+      if (!user) throw new Error(t("signInAgain"));
 
       // Upload the file straight to Storage from the browser. This avoids
       // routing the (potentially large) file through a Vercel serverless
@@ -59,14 +55,14 @@ export default function RecordsToolbar({
       const res = await ingestRecord({ path, fileName: file.name });
       if (!res.ok) throw new Error(res.error);
       if (!res.parsed) {
-        alert(
-          "Uploaded — but parsing failed, so it's saved as 'Pending review'.\n\n" +
-            (res.parseError ? `Reason: ${res.parseError}` : "No reason returned."),
-        );
+        const reason = res.parseError
+          ? t("parseFailedReason", { reason: res.parseError })
+          : t("parseFailedNoReason");
+        alert(t("parseFailed", { reason }));
       }
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Upload failed");
+      alert(err instanceof Error ? err.message : t("uploadFailed"));
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -76,7 +72,7 @@ export default function RecordsToolbar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <input
-        placeholder="Search by title, doctor, or facility…"
+        placeholder={t("search")}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
@@ -85,22 +81,22 @@ export default function RecordsToolbar({
         className="min-w-[240px] flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm"
       />
       <div className="flex flex-wrap gap-1">
-        {types.map((t) => (
+        {typeKeys.map((key) => (
           <button
-            key={t.key}
-            onClick={() => setParam("type", t.key)}
+            key={key}
+            onClick={() => setParam("type", key)}
             className={`rounded-md px-3 py-1.5 text-sm transition ${
-              activeType === t.key
+              activeType === key
                 ? "bg-[var(--color-fg)] text-white"
                 : "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
             }`}
           >
-            {t.label}
+            {t(`filters.${key}`)}
           </button>
         ))}
       </div>
       <label className="cursor-pointer rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white">
-        {uploading ? "Uploading…" : pending ? "…" : "Upload"}
+        {uploading ? tc("uploading") : pending ? "…" : tc("upload")}
         <input
           type="file"
           className="hidden"

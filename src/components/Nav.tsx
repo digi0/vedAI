@@ -1,23 +1,27 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getSessionUser } from "@/lib/supabase";
 import { signOut } from "@/lib/auth-actions";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BottomTabBar from "@/components/BottomTabBar";
 import VedChat from "@/components/VedChat";
 
 const links = [
-  { href: "/", label: "Overview" },
-  { href: "/records", label: "Records" },
-  { href: "/metrics", label: "Metrics" },
-  { href: "/insights", label: "Insights" },
-  { href: "/pharmacy", label: "Pharmacy" },
-  { href: "/emergency", label: "Emergency" },
-];
+  { href: "/", key: "overview" },
+  { href: "/records", key: "records" },
+  { href: "/metrics", key: "metrics" },
+  { href: "/insights", key: "insights" },
+  { href: "/pharmacy", key: "pharmacy" },
+  { href: "/emergency", key: "emergency" },
+] as const;
 
 export default async function Nav() {
   const user = await getSessionUser();
   // No nav chrome for logged-out visitors (login / signup / doctor share view).
   if (!user) return null;
+
+  const t = await getTranslations("nav");
 
   return (
     <>
@@ -43,29 +47,31 @@ export default async function Nav() {
                 href={l.href}
                 className="rounded-md px-3 py-1.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
+            <LanguageSwitcher />
             <ThemeToggle />
             <Link
               href="/share"
               className="ml-1 rounded-md bg-[var(--color-brand)] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
             >
-              Share with doctor
+              {t("shareWithDoctor")}
             </Link>
             <form action={signOut} className="ml-1">
               <button
                 type="submit"
-                title={user.email ?? "Sign out"}
+                title={user.email ?? t("signOut")}
                 className="rounded-md px-3 py-1.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
               >
-                Sign out
+                {t("signOut")}
               </button>
             </form>
           </nav>
 
-          {/* Mobile: just the theme toggle — primary nav lives in the tab bar */}
-          <div className="md:hidden">
+          {/* Mobile: language + theme — primary nav lives in the tab bar */}
+          <div className="flex items-center gap-2 md:hidden">
+            <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </div>

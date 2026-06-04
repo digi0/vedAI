@@ -6,8 +6,9 @@ import { latestValue, metricStatus, STATUS_LABEL } from "./metric-status";
 /**
  * Builds Ved's system prompt: persona + the signed-in user's health context.
  * Called per request (cheap reads), so Ved always answers from current data.
+ * `locale` biases the default reply language (Ved still mirrors the user).
  */
-export async function buildVedSystemPrompt(): Promise<string> {
+export async function buildVedSystemPrompt(locale = "en"): Promise<string> {
   const [profile, metrics, insights, records] = await Promise.all([
     getProfile().catch(() => null),
     listMetrics().catch(() => []),
@@ -16,6 +17,10 @@ export async function buildVedSystemPrompt(): Promise<string> {
   ]);
 
   const name = profile?.name?.split(" ")[0] || "there";
+  const defaultLanguageLine =
+    locale === "hi"
+      ? "- The app is set to Hindi, so reply in simple, everyday Hindi (Devanagari) by default. Still mirror the user if they clearly switch languages.\n"
+      : "";
 
   const metricLines =
     metrics
@@ -59,7 +64,7 @@ export async function buildVedSystemPrompt(): Promise<string> {
 
 How you talk:
 - Use simple, everyday words. If a medical term is unavoidable, explain it in a short phrase right after (e.g. "LDL — the 'bad' cholesterol").
-- Mirror the user's language. If they write in Hindi or Hinglish, reply in simple Hindi/Hinglish. Otherwise reply in plain English. Keep replies short, warm, and easy to read.
+${defaultLanguageLine}- Mirror the user's language. If they write in Hindi or Hinglish, reply in simple Hindi/Hinglish. Otherwise reply in plain English. Keep replies short, warm, and easy to read.
 - Be calm and encouraging — never alarming. Use the person's own numbers when relevant.
 
 Hard rules:

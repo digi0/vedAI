@@ -2,19 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { logMetric } from "@/lib/actions";
 
-const options = [
-  { key: "bp_sys", label: "BP Systolic (mmHg)" },
-  { key: "bp_dia", label: "BP Diastolic (mmHg)" },
-  { key: "weight", label: "Weight (kg)" },
-  { key: "glucose", label: "Glucose (mg/dL)" },
-  { key: "resting_hr", label: "Resting HR (bpm)" },
-  { key: "sleep_hrs", label: "Sleep (hrs)" },
-];
+const optionKeys = ["bp_sys", "bp_dia", "weight", "glucose", "resting_hr", "sleep_hrs"];
 
 export default function LogMetricForm() {
   const router = useRouter();
+  const tl = useTranslations("logMetric");
+  const tm = useTranslations("metrics");
+  const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState("bp_sys");
   const [value, setValue] = useState("");
@@ -26,7 +23,7 @@ export default function LogMetricForm() {
         onClick={() => setOpen(true)}
         className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-sm"
       >
-        Log new reading
+        {tm("logNewReading")}
       </button>
     );
   }
@@ -49,16 +46,16 @@ export default function LogMetricForm() {
         onChange={(e) => setKey(e.target.value)}
         className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm"
       >
-        {options.map((o) => (
-          <option key={o.key} value={o.key}>
-            {o.label}
+        {optionKeys.map((k) => (
+          <option key={k} value={k}>
+            {tl(k)}
           </option>
         ))}
       </select>
       <input
         type="number"
         step="0.1"
-        placeholder="Value"
+        placeholder={tm("value")}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="w-28 rounded-md border border-[var(--color-border)] px-2 py-1.5 text-sm"
@@ -69,13 +66,13 @@ export default function LogMetricForm() {
         disabled={pending || !value}
         className="rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-sm text-white disabled:opacity-50"
       >
-        {pending ? "Saving…" : "Save"}
+        {pending ? tc("saving") : tc("save")}
       </button>
       <button
         onClick={() => setOpen(false)}
         className="rounded-md px-2 py-1.5 text-sm text-[var(--color-fg-muted)]"
       >
-        Cancel
+        {tc("cancel")}
       </button>
     </div>
   );

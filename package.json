@@ -15,6 +15,7 @@
     "lucide-react": "^1.17.0",
     "medical-parser": "file:vendor/medical-parser-0.1.1.tgz",
     "next": "16.2.6",
+    "next-intl": "^4.13.0",
     "pdf-parse": "^2.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",

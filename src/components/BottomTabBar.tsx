@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { signOut } from "@/lib/auth-actions";
 
-type Tab = { href: string; label: string; icon: React.ReactNode };
+type Tab = { href: string; key: string; icon: React.ReactNode };
 
 const I = {
   home: (
@@ -24,10 +25,10 @@ const I = {
 };
 
 const tabs: Tab[] = [
-  { href: "/", label: "Home", icon: I.home },
-  { href: "/records", label: "Records", icon: I.records },
-  { href: "/metrics", label: "Metrics", icon: I.metrics },
-  { href: "/insights", label: "Insights", icon: I.insights },
+  { href: "/", key: "home", icon: I.home },
+  { href: "/records", key: "records", icon: I.records },
+  { href: "/metrics", key: "metrics", icon: I.metrics },
+  { href: "/insights", key: "insights", icon: I.insights },
 ];
 
 function Icon({ children }: { children: React.ReactNode }) {
@@ -50,6 +51,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 
 export default function BottomTabBar() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const [moreOpen, setMoreOpen] = useState(false);
 
   // Close the sheet whenever the route changes.
@@ -77,27 +79,27 @@ export default function BottomTabBar() {
       {/* ── Mobile bottom tab bar ── */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-bg)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-md items-stretch">
-          {tabs.map((t) => {
-            const active = isActive(t.href);
+          {tabs.map((tab) => {
+            const active = isActive(tab.href);
             return (
               <Link
-                key={t.href}
-                href={t.href}
+                key={tab.href}
+                href={tab.href}
                 className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium ${
                   active
                     ? "text-[var(--color-brand)]"
                     : "text-[var(--color-fg-dim)]"
                 }`}
               >
-                <Icon>{t.icon}</Icon>
-                {t.label}
+                <Icon>{tab.icon}</Icon>
+                {t(tab.key)}
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            aria-label="More"
+            aria-label={t("more")}
             className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium ${
               moreActive || moreOpen
                 ? "text-[var(--color-brand)]"
@@ -105,7 +107,7 @@ export default function BottomTabBar() {
             }`}
           >
             <Icon>{I.more}</Icon>
-            More
+            {t("more")}
           </button>
         </div>
       </nav>
@@ -132,15 +134,15 @@ export default function BottomTabBar() {
         >
           <div className="mx-auto mb-1 h-1 w-9 rounded-full bg-[var(--color-border-strong)]" />
           <div className="px-3 py-2">
-            <SheetLink href="/pharmacy" label="Pharmacy" icon={I.pill} onClick={() => setMoreOpen(false)} />
+            <SheetLink href="/pharmacy" label={t("pharmacy")} icon={I.pill} onClick={() => setMoreOpen(false)} />
             <SheetLink
               href="/emergency"
-              label="Emergency card"
+              label={t("emergencyCard")}
               icon={I.emergency}
               tone="alert"
               onClick={() => setMoreOpen(false)}
             />
-            <SheetLink href="/share" label="Share with doctor" icon={I.share} onClick={() => setMoreOpen(false)} />
+            <SheetLink href="/share" label={t("shareWithDoctor")} icon={I.share} onClick={() => setMoreOpen(false)} />
             <div className="my-2 h-px bg-[var(--color-border)]" />
             <form action={signOut}>
               <button
@@ -150,7 +152,7 @@ export default function BottomTabBar() {
                 <span className="text-[var(--color-fg-muted)]">
                   <Icon>{I.logout}</Icon>
                 </span>
-                <span className="font-medium">Sign out</span>
+                <span className="font-medium">{t("signOut")}</span>
               </button>
             </form>
           </div>

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getLocale } from "next-intl/server";
 import { getSessionUser } from "@/lib/supabase";
 import { buildVedSystemPrompt } from "@/lib/ved";
 
@@ -36,7 +37,8 @@ export async function POST(req: Request) {
     return new Response("Bad request", { status: 400 });
   }
 
-  const system = await buildVedSystemPrompt();
+  const locale = await getLocale();
+  const system = await buildVedSystemPrompt(locale);
   const client = new Anthropic();
   const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 

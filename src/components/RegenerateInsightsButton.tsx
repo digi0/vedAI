@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { regenerateInsights } from "@/lib/actions";
 
 export default function RegenerateInsightsButton() {
   const router = useRouter();
+  const t = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +22,7 @@ export default function RegenerateInsightsButton() {
         }
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed");
+        setError(e instanceof Error ? e.message : t("failed"));
       }
     });
   }
@@ -32,7 +34,7 @@ export default function RegenerateInsightsButton() {
         disabled={pending}
         className="rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white disabled:opacity-60"
       >
-        {pending ? "Thinking…" : "Regenerate"}
+        {pending ? t("thinking") : t("regenerate")}
       </button>
       {error && (
         <span className="text-xs text-[var(--color-alert)]">{error}</span>

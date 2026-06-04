@@ -13,6 +13,7 @@
 import { revalidatePath } from "next/cache";
 import type { ParsedDocument } from "medical-parser";
 import { serverAdmin, requireUserId } from "./supabase";
+import { getLocale } from "next-intl/server";
 import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
 import { ingestDocumentBytes } from "./ingest";
@@ -202,8 +203,9 @@ export async function regenerateInsights(): Promise<InsightsResult> {
     })),
   };
 
+  const locale = await getLocale();
   const llm = getLLM();
-  const insights = await llm.generateInsights(ctx);
+  const insights = await llm.generateInsights(ctx, locale);
 
   // Replace stored insights atomically-ish: delete then insert.
   await sb.from("insights").delete().eq("user_id", userId);

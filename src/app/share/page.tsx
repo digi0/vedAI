@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { SectionTitle, Card, Badge } from "@/components/Card";
 import { supabaseServer } from "@/lib/supabase";
 import ShareManager from "@/components/ShareManager";
@@ -5,6 +6,7 @@ import ShareManager from "@/components/ShareManager";
 export const dynamic = "force-dynamic";
 
 export default async function SharePage() {
+  const t = await getTranslations("share");
   const sb = await supabaseServer();
   // RLS scopes share_tokens to the logged-in owner.
   const { data } = await sb
@@ -22,11 +24,9 @@ export default async function SharePage() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle eyebrow="For your doctor" title="Share links" />
+      <SectionTitle eyebrow={t("eyebrow")} title={t("title")} />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        Generate a read-only link any doctor can open in their browser. No
-        login required on their side. Links expire automatically and you can
-        revoke them anytime.
+        {t("intro")}
       </p>
 
       <ShareManager tokens={tokens} />
@@ -34,36 +34,36 @@ export default async function SharePage() {
       {tokens.length === 0 && (
         <Card>
           <p className="text-sm text-[var(--color-fg-muted)]">
-            No active share links. Generate one above.
+            {t("noLinks")}
           </p>
         </Card>
       )}
 
       <div className="space-y-2">
-        {tokens.map((t) => {
-          const expired = new Date(t.expiresAt) < new Date();
-          const revoked = !!t.revokedAt;
+        {tokens.map((tok) => {
+          const expired = new Date(tok.expiresAt) < new Date();
+          const revoked = !!tok.revokedAt;
           const status = revoked
-            ? { tone: "alert" as const, text: "revoked" }
+            ? { tone: "alert" as const, text: t("statusRevoked") }
             : expired
-              ? { tone: "warn" as const, text: "expired" }
-              : { tone: "ok" as const, text: "active" };
+              ? { tone: "warn" as const, text: t("statusExpired") }
+              : { tone: "ok" as const, text: t("statusActive") };
 
           return (
-            <Card key={t.token}>
+            <Card key={tok.token}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <code className="truncate font-mono text-sm">
-                      /share/{t.token}
+                      /share/{tok.token}
                     </code>
                     <Badge tone={status.tone}>{status.text}</Badge>
                   </div>
                   <div className="mt-1 text-xs text-[var(--color-fg-muted)]">
-                    Created{" "}
-                    {new Date(t.createdAt).toLocaleDateString()} · Expires{" "}
-                    {new Date(t.expiresAt).toLocaleString()} · Views{" "}
-                    {t.viewedCount}
+                    {t("created")}{" "}
+                    {new Date(tok.createdAt).toLocaleDateString()} · {t("expires")}{" "}
+                    {new Date(tok.expiresAt).toLocaleString()} · {t("views")}{" "}
+                    {tok.viewedCount}
                   </div>
                 </div>
               </div>

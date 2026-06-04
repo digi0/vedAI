@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { FileText, Activity, TriangleAlert, ChevronRight } from "lucide-react";
 import ProgressRing from "@/components/ProgressRing";
 
@@ -17,6 +18,7 @@ export default function HealthSummary({
   records: number;
   alerts: number;
 }) {
+  const t = useTranslations("health");
   const pct = tracked > 0 ? inRange / tracked : 0;
   const pctLabel = tracked > 0 ? Math.round(pct * 100) : 0;
 
@@ -27,7 +29,7 @@ export default function HealthSummary({
           <ProgressRing value={pct} size={148} stroke={14}>
             <span className="font-display text-4xl leading-none">{pctLabel}%</span>
             <span className="mt-1 text-[11px] uppercase tracking-wider text-[var(--color-fg-dim)]">
-              in range
+              {t("inRange")}
             </span>
           </ProgressRing>
         </Link>
@@ -35,37 +37,37 @@ export default function HealthSummary({
         <div className="w-full flex-1">
           <h2 className="font-display text-xl">
             {tracked === 0
-              ? "No readings yet"
+              ? t("noReadings")
               : pct >= 0.8
-                ? "Looking healthy"
+                ? t("lookingHealthy")
                 : pct >= 0.5
-                  ? "A few things to watch"
-                  : "Needs attention"}
+                  ? t("fewToWatch")
+                  : t("needsAttention")}
           </h2>
           <p className="mt-0.5 text-sm text-[var(--color-fg-muted)]">
             {tracked === 0
-              ? "Upload a lab report to start tracking your markers."
-              : `${inRange} of ${tracked} tracked markers are in a healthy range.`}
+              ? t("uploadToStart")
+              : t("inRangeSummary", { inRange, tracked })}
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-2">
             <StatRow
               href="/metrics"
               icon={<Activity size={18} />}
-              label="Markers in range"
+              label={t("markersInRange")}
               value={`${inRange}/${tracked}`}
               tone="brand"
             />
             <StatRow
               href="/records"
               icon={<FileText size={18} />}
-              label="Records on file"
+              label={t("recordsOnFile")}
               value={String(records)}
             />
             <StatRow
               href="/insights"
               icon={<TriangleAlert size={18} />}
-              label={alerts === 1 ? "Insight to review" : "Insights to review"}
+              label={alerts === 1 ? t("insightToReview") : t("insightsToReview")}
               value={String(alerts)}
               tone={alerts > 0 ? "alert" : undefined}
             />

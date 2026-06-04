@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { SectionTitle } from "@/components/Card";
 import MetricChart from "@/components/MetricChart";
 import LogMetricForm from "@/components/LogMetricForm";
@@ -19,6 +20,8 @@ const CATEGORY_ORDER: MetricCategory[] = [
 
 export default async function Metrics() {
   const metrics = await listMetrics();
+  const t = await getTranslations("metrics");
+  const tcat = await getTranslations("categories");
 
   const withData = metrics.filter((m) => latestValue(m) !== null);
   const attention = withData.filter(isAttention);
@@ -36,11 +39,11 @@ export default async function Metrics() {
 
   return (
     <div className="space-y-10">
-      <SectionTitle eyebrow="Trends" title="Health metrics" action={<LogMetricForm />} />
+      <SectionTitle eyebrow={t("eyebrow")} title={t("title")} action={<LogMetricForm />} />
 
       {!hasAny && (
         <div className="rounded-2xl border border-dashed border-[var(--color-border-strong)] p-10 text-center text-[var(--color-fg-muted)]">
-          No readings yet. Upload a lab report or log a reading to start tracking.
+          {t("empty")}
         </div>
       )}
 
@@ -48,7 +51,7 @@ export default async function Metrics() {
         <section>
           <div className="mb-3 flex items-center gap-2">
             <TriangleAlert size={16} className="text-[var(--color-alert)]" />
-            <h2 className="font-display text-xl">Needs attention</h2>
+            <h2 className="font-display text-xl">{t("needsAttention")}</h2>
             <span className="rounded-full bg-[var(--color-alert-soft)] px-2 py-0.5 text-xs font-medium text-[var(--color-alert)]">
               {attention.length}
             </span>
@@ -71,7 +74,7 @@ export default async function Metrics() {
         return (
           <section key={cat}>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-dim)]">
-              {cat}
+              {tcat(cat)}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((m) => (

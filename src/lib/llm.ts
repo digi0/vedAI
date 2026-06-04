@@ -12,7 +12,15 @@ import type { ParsedDocument } from "medical-parser";
 import type { Insight } from "./types";
 
 export interface LLMProvider {
-  generateInsights(ctx: PatientContext): Promise<Insight[]>;
+  generateInsights(ctx: PatientContext, language?: string): Promise<Insight[]>;
+}
+
+/** Extra instruction appended to the prompt so output matches the UI language. */
+function languageDirective(language?: string): string {
+  if (language === "hi") {
+    return `\n\nLANGUAGE: Write the "title", "detail", and "suggestion" text in simple, everyday Hindi (Devanagari). Common medical acronyms (LDL, HDL, HbA1c, BP, TSH) may stay in English. Keep the JSON structure, keys, and the "severity" values ("info"/"watch"/"alert") in English.`;
+  }
+  return "";
 }
 
 export type PatientContext = {
@@ -95,10 +103,10 @@ function stripCodeFence(s: string): string {
 }
 
 export class OllamaProvider implements LLMProvider {
-  async generateInsights(ctx: PatientContext): Promise<Insight[]> {
+  async generateInsights(ctx: PatientContext, language?: string): Promise<Insight[]> {
     const raw = await ollamaChat({
       system: INSIGHTS_SYSTEM,
-      user: `Patient data:\n\n${JSON.stringify(ctx, null, 2)}`,
+      user: `Patient data:\n\n${JSON.stringify(ctx, null, 2)}${languageDirective(language)}`,
       format: "json",
     });
     try {
@@ -116,7 +124,7 @@ export class OllamaProvider implements LLMProvider {
  * model's minimum cacheable size (harmless no-op below it).
  */
 export class AnthropicProvider implements LLMProvider {
-  async generateInsights(ctx: PatientContext): Promise<Insight[]> {
+  async generateInsights(ctx: PatientContext, language?: string): Promise<Insight[]> {
     const client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
     const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 
@@ -134,7 +142,7 @@ export class AnthropicProvider implements LLMProvider {
       messages: [
         {
           role: "user",
-          content: `Patient data:\n\n${JSON.stringify(ctx, null, 2)}\n\nReturn the JSON array now.`,
+          content: `Patient data:\n\n${JSON.stringify(ctx, null, 2)}${languageDirective(language)}\n\nReturn the JSON array now.`,
         },
       ],
     });

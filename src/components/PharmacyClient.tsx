@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import { placeOrder, requestRefillAuth } from "@/lib/actions";
 import type {
@@ -26,16 +27,15 @@ const statusTone: Record<OrderStatus, "warn" | "brand" | "ok"> = {
   delivered: "ok",
 };
 
-const deliveryOptions: {
-  key: DeliveryMethod;
-  label: string;
-  eta: string;
-  fee: number;
-}[] = [
-  { key: "pickup", label: "Pharmacy pickup", eta: "Ready in ~2 hrs", fee: 0 },
-  { key: "standard", label: "Standard delivery", eta: "2–3 business days", fee: 4.99 },
-  { key: "express", label: "Express delivery", eta: "Next business day", fee: 12.99 },
+const deliveryOptions: { key: DeliveryMethod; fee: number }[] = [
+  { key: "pickup", fee: 0 },
+  { key: "standard", fee: 4.99 },
+  { key: "express", fee: 12.99 },
 ];
+
+// Maps a delivery key to its translation key suffix (deliveryPickup, etc.).
+const deliveryKey = (k: DeliveryMethod) =>
+  `delivery${k.charAt(0).toUpperCase()}${k.slice(1)}` as const;
 
 function money(n: number) {
   return `$${n.toFixed(2)}`;
@@ -51,6 +51,7 @@ export default function PharmacyClient({
   allergies: string[];
 }) {
   const router = useRouter();
+  const t = useTranslations("pharmacy");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [delivery, setDelivery] = useState<DeliveryMethod>("standard");
   const [pending, startTransition] = useTransition();
@@ -106,7 +107,7 @@ export default function PharmacyClient({
         setCart({});
         router.refresh();
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Order failed");
+        alert(e instanceof Error ? e.message : t("orderFailed"));
       }
     });
   }
@@ -122,27 +123,25 @@ export default function PharmacyClient({
   return (
     <div className="space-y-8">
       <SectionTitle
-        eyebrow="Order & refill"
-        title="Pharmacy"
+        eyebrow={t("eyebrow")}
+        title={t("title")}
         action={
           itemCount > 0 ? (
-            <Badge tone="brand">🛒 {itemCount} in cart</Badge>
+            <Badge tone="brand">{t("inCart", { count: itemCount })}</Badge>
           ) : undefined
         }
       />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        Refill medication straight from the prescriptions on your record. Every
-        order is verified against your prescription on file before it ships.
+        {t("intro")}
       </p>
 
       {lastOrderId && (
         <div className="rounded-xl border border-[var(--color-ok)] bg-[var(--color-ok-soft)] p-4">
           <div className="font-medium text-[var(--color-ok)]">
-            Order placed — {lastOrderId}
+            {t("orderPlaced", { id: lastOrderId })}
           </div>
           <p className="mt-0.5 text-sm text-[var(--color-fg-muted)]">
-            We&apos;re verifying it against your prescriptions. You&apos;ll be
-            notified when it ships — track it in order history below.
+            {t("orderPlacedNote")}
           </p>
         </div>
       )}
@@ -150,13 +149,12 @@ export default function PharmacyClient({
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
           <div className="text-xs font-medium uppercase tracking-wider text-[var(--color-fg-dim)]">
-            From your prescriptions
+            {t("fromPrescriptions")}
           </div>
           {items.length === 0 ? (
             <Card>
               <p className="text-sm text-[var(--color-fg-muted)]">
-                No medications on file yet. Items appear here once a
-                prescription is added to your records.
+                {t("noMeds")}
               </p>
             </Card>
           ) : (
@@ -192,19 +190,24 @@ export default function PharmacyClient({
                           {m.dose}
                         </span>
                       </h3>
-                      <Badge tone="neutral">{m.form}</Badge>
+                      <Badge tone="neutral">{t(`forms.${m.form}`)}</Badge>
                       {isBlocked ? (
                         <Badge tone="alert">
-                          ⚠ Allergy: {conflicts.join(", ")}
+                          {t("allergyBadge", { classes: conflicts.join(", ") })}
                         </Badge>
                       ) : orderable ? (
-                        <Badge tone="ok">{m.refillsLeft} refills left</Badge>
+                        <Badge tone="ok">
+                          {t("refillsLeft", { count: m.refillsLeft })}
+                        </Badge>
                       ) : (
-                        <Badge tone="warn">Refill auth needed</Badge>
+                        <Badge tone="warn">{t("refillAuthNeeded")}</Badge>
                       )}
                     </div>
                     <div className="mt-0.5 text-sm text-[var(--color-fg-muted)]">
-                      {m.packSize} · Prescribed by {m.prescribedBy}
+                      {t("packPrescribedBy", {
+                        pack: m.packSize,
+                        doctor: m.prescribedBy,
+                      })}
                     </div>
                     {m.note && (
                       <p className="mt-2 text-sm text-[var(--color-fg)]">
@@ -213,17 +216,19 @@ export default function PharmacyClient({
                     )}
                     {isBlocked && (
                       <p className="mt-2 rounded-md bg-[var(--color-alert-soft)] px-3 py-2 text-sm text-[var(--color-alert)]">
-                        Blocked — {m.name} is a {m.allergyClass}-class drug
-                        and you have a documented {conflicts.join(", ")}{" "}
-                        allergy. Talk to {m.prescribedBy} or your PCP before
-                        refilling.
+                        {t("blockedNote", {
+                          name: m.name,
+                          cls: m.allergyClass ?? "",
+                          allergy: conflicts.join(", "),
+                          doctor: m.prescribedBy,
+                        })}
                       </p>
                     )}
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <div className="font-display text-xl">
                         {money(m.price)}
                         <span className="ml-1 text-xs text-[var(--color-fg-dim)]">
-                          / fill
+                          {t("perFill")}
                         </span>
                       </div>
                       {isBlocked ? (
@@ -231,7 +236,7 @@ export default function PharmacyClient({
                           disabled
                           className="cursor-not-allowed rounded-md border border-[var(--color-alert)] bg-[var(--color-alert-soft)] px-4 py-2 text-sm text-[var(--color-alert)]"
                         >
-                          Allergy block
+                          {t("allergyBlock")}
                         </button>
                       ) : orderable ? (
                         qty > 0 ? (
@@ -239,7 +244,7 @@ export default function PharmacyClient({
                             <button
                               onClick={() => setQty(m.id, qty - 1)}
                               className="h-8 w-8 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-lg leading-none"
-                              aria-label={`Decrease ${m.name}`}
+                              aria-label={t("decrease", { name: m.name })}
                             >
                               −
                             </button>
@@ -249,7 +254,7 @@ export default function PharmacyClient({
                             <button
                               onClick={() => setQty(m.id, qty + 1)}
                               className="h-8 w-8 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-lg leading-none"
-                              aria-label={`Increase ${m.name}`}
+                              aria-label={t("increase", { name: m.name })}
                             >
                               +
                             </button>
@@ -259,7 +264,7 @@ export default function PharmacyClient({
                             onClick={() => setQty(m.id, 1)}
                             className="rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white transition hover:bg-[var(--color-brand)]/90"
                           >
-                            Add to order
+                            {t("addToOrder")}
                           </button>
                         )
                       ) : (
@@ -272,7 +277,7 @@ export default function PharmacyClient({
                               : "border border-[var(--color-border-strong)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]"
                           }`}
                         >
-                          {isRequested ? "Refill requested ✓" : "Request refill"}
+                          {isRequested ? t("refillRequested") : t("requestRefill")}
                         </button>
                       )}
                     </div>
@@ -286,11 +291,10 @@ export default function PharmacyClient({
         <div>
           <div className="sticky top-20">
             <Card>
-              <h3 className="font-medium">Your order</h3>
+              <h3 className="font-medium">{t("yourOrder")}</h3>
               {cartLines.length === 0 ? (
                 <p className="mt-3 text-sm text-[var(--color-fg-muted)]">
-                  No medication selected yet. Add a refill from your
-                  prescriptions to get started.
+                  {t("emptyCart")}
                 </p>
               ) : (
                 <>
@@ -313,7 +317,7 @@ export default function PharmacyClient({
 
                   <div className="mt-4 border-t border-[var(--color-border)] pt-3">
                     <div className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-fg-dim)]">
-                      Delivery
+                      {t("delivery")}
                     </div>
                     <div className="space-y-1.5">
                       {deliveryOptions.map((d) => (
@@ -327,13 +331,13 @@ export default function PharmacyClient({
                           }`}
                         >
                           <span>
-                            <span className="font-medium">{d.label}</span>
+                            <span className="font-medium">{t(deliveryKey(d.key))}</span>
                             <span className="block text-xs text-[var(--color-fg-muted)]">
-                              {d.eta}
+                              {t(`${deliveryKey(d.key)}Eta`)}
                             </span>
                           </span>
                           <span className="shrink-0">
-                            {d.fee === 0 ? "Free" : money(d.fee)}
+                            {d.fee === 0 ? t("free") : money(d.fee)}
                           </span>
                         </button>
                       ))}
@@ -342,17 +346,17 @@ export default function PharmacyClient({
 
                   <div className="mt-4 space-y-1 border-t border-[var(--color-border)] pt-3 text-sm">
                     <div className="flex justify-between text-[var(--color-fg-muted)]">
-                      <span>Subtotal</span>
+                      <span>{t("subtotal")}</span>
                       <span>{money(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-[var(--color-fg-muted)]">
-                      <span>Delivery</span>
+                      <span>{t("delivery")}</span>
                       <span>
-                        {deliveryFee === 0 ? "Free" : money(deliveryFee)}
+                        {deliveryFee === 0 ? t("free") : money(deliveryFee)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-1 font-medium">
-                      <span>Total</span>
+                      <span>{t("total")}</span>
                       <span className="font-display text-lg">
                         {money(total)}
                       </span>
@@ -365,12 +369,11 @@ export default function PharmacyClient({
                     className="mt-4 w-full rounded-md bg-[var(--color-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-brand)]/90 disabled:opacity-60"
                   >
                     {pending
-                      ? "Placing order…"
-                      : `Place order · ${money(total)}`}
+                      ? t("placingOrder")
+                      : t("placeOrder", { total: money(total) })}
                   </button>
                   <p className="mt-2 text-xs text-[var(--color-fg-dim)]">
-                    Orders are verified against your prescriptions on file
-                    before dispatch.
+                    {t("orderVerifyNote")}
                   </p>
                 </>
               )}
@@ -380,11 +383,11 @@ export default function PharmacyClient({
       </div>
 
       <section>
-        <SectionTitle eyebrow="Track" title="Order history" />
+        <SectionTitle eyebrow={t("trackEyebrow")} title={t("orderHistory")} />
         <div className="space-y-3">
           {orders.length === 0 ? (
             <div className="rounded-lg border border-dashed border-[var(--color-border-strong)] p-10 text-center text-[var(--color-fg-muted)]">
-              No orders yet.
+              {t("noOrders")}
             </div>
           ) : (
             orders.map((o) => (
@@ -393,7 +396,9 @@ export default function PharmacyClient({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{o.id}</span>
-                      <Badge tone={statusTone[o.status]}>{o.status}</Badge>
+                      <Badge tone={statusTone[o.status]}>
+                        {t(`orderStatus.${o.status}`)}
+                      </Badge>
                     </div>
                     <div className="mt-0.5 text-sm text-[var(--color-fg-muted)]">
                       {new Date(o.placedAt).toLocaleDateString("en-US", {
@@ -401,11 +406,7 @@ export default function PharmacyClient({
                         month: "short",
                         day: "numeric",
                       })}{" "}
-                      ·{" "}
-                      {
-                        deliveryOptions.find((d) => d.key === o.delivery)
-                          ?.label
-                      }
+                      · {t(deliveryKey(o.delivery))}
                     </div>
                     <div className="mt-1.5 text-sm">
                       {o.items

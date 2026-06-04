@@ -1,15 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Sparkles, X, ArrowUp, Mic } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
-
-const SUGGESTIONS = [
-  "Explain my latest report simply",
-  "How's my cholesterol?",
-  "मेरी रिपोर्ट आसान भाषा में समझाओ",
-];
 
 // --- Minimal Web Speech API typings (not in lib.dom across all setups) ---
 type SpeechResult = { isFinal: boolean; readonly [i: number]: { transcript: string } };
@@ -36,6 +31,8 @@ function getSpeechCtor(): SpeechRecognizerCtor | null {
 }
 
 export default function VedChat() {
+  const t = useTranslations("ved");
+  const SUGGESTIONS = [t("suggestion1"), t("suggestion2"), t("suggestion3")];
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -154,11 +151,11 @@ export default function VedChat() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          aria-label="Open Ved"
+          aria-label={t("open")}
           className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 inline-flex items-center gap-2 rounded-full bg-[var(--color-brand)] px-4 py-3 text-sm font-medium text-white shadow-lg shadow-black/20 hover:bg-[var(--color-brand-strong)] md:right-6 md:bottom-6"
         >
           <Sparkles size={18} />
-          Ved
+          {t("title")}
         </button>
       )}
 
@@ -178,15 +175,15 @@ export default function VedChat() {
                   <Sparkles size={16} />
                 </span>
                 <div>
-                  <div className="font-display text-lg leading-none">Ved</div>
+                  <div className="font-display text-lg leading-none">{t("title")}</div>
                   <div className="text-xs text-[var(--color-fg-dim)]">
-                    your health companion
+                    {t("subtitle")}
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Close"
+                aria-label={t("close")}
                 className="rounded-md p-1.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
               >
                 <X size={18} />
@@ -198,8 +195,7 @@ export default function VedChat() {
               {messages.length === 0 ? (
                 <div className="mt-2">
                   <p className="text-sm text-[var(--color-fg-muted)]">
-                    Hi! I&apos;m Ved. Ask me anything about your records, metrics,
-                    or what a result means — in English or Hindi.
+                    {t("greeting")}
                   </p>
                   <div className="mt-3 flex flex-col gap-2">
                     {SUGGESTIONS.map((s) => (
@@ -244,7 +240,8 @@ export default function VedChat() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-brand)] opacity-60" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-brand)]" />
                 </span>
-                Listening{recLang === "hi-IN" ? " (हिंदी)" : ""}… tap mic to stop
+                {recLang === "hi-IN" ? t("listeningHindi") : t("listening")}…{" "}
+                {t("tapMicToStop")}
               </div>
             )}
 
@@ -262,7 +259,7 @@ export default function VedChat() {
                     type="button"
                     onClick={toggleMic}
                     disabled={busy}
-                    aria-label={listening ? "Stop voice input" : "Start voice input"}
+                    aria-label={listening ? t("stopVoice") : t("startVoice")}
                     aria-pressed={listening}
                     className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors disabled:opacity-40 ${
                       listening
@@ -275,7 +272,7 @@ export default function VedChat() {
                   <button
                     type="button"
                     onClick={() => setRecLang((l) => (l === "en-IN" ? "hi-IN" : "en-IN"))}
-                    title="Voice language"
+                    title={t("voiceLanguage")}
                     className="rounded px-1 text-[10px] font-medium text-[var(--color-fg-dim)] hover:text-[var(--color-fg)]"
                   >
                     {recLang === "en-IN" ? "EN" : "हि"}
@@ -292,13 +289,13 @@ export default function VedChat() {
                   }
                 }}
                 rows={1}
-                placeholder={listening ? "Speak now…" : "Ask Ved…"}
+                placeholder={listening ? t("speakNow") : t("placeholder")}
                 className="max-h-28 flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:border-[var(--color-brand)]"
               />
               <button
                 type="submit"
                 disabled={busy || !input.trim()}
-                aria-label="Send"
+                aria-label={t("send")}
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] text-white disabled:opacity-40"
               >
                 <ArrowUp size={18} />

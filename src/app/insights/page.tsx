@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card, SectionTitle } from "@/components/Card";
 import { listInsights, type Insight } from "@/lib/db";
 import RegenerateInsightsButton from "@/components/RegenerateInsightsButton";
@@ -8,43 +9,40 @@ export const maxDuration = 60;
 
 const GROUPS: {
   sev: Insight["severity"];
-  title: string;
   icon: LucideIcon;
   color: string;
 }[] = [
-  { sev: "alert", title: "Needs attention", icon: TriangleAlert, color: "var(--color-alert)" },
-  { sev: "watch", title: "Worth watching", icon: Activity, color: "var(--color-warn)" },
-  { sev: "info", title: "Good to know", icon: Lightbulb, color: "var(--color-brand)" },
+  { sev: "alert", icon: TriangleAlert, color: "var(--color-alert)" },
+  { sev: "watch", icon: Activity, color: "var(--color-warn)" },
+  { sev: "info", icon: Lightbulb, color: "var(--color-brand)" },
 ];
 
 export default async function Insights() {
   const insights = await listInsights();
+  const t = await getTranslations("insights");
 
   return (
     <div className="space-y-8">
-      <SectionTitle eyebrow="What we noticed" title="Insights" action={<RegenerateInsightsButton />} />
+      <SectionTitle eyebrow={t("eyebrow")} title={t("title")} action={<RegenerateInsightsButton />} />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        Patterns we spotted across your records and metrics. These are signals
-        to explore, not diagnoses — always check with your doctor.
+        {t("intro")}
       </p>
 
       {insights.length === 0 ? (
         <Card>
           <p className="text-sm text-[var(--color-fg-muted)]">
-            No insights yet. Upload a record or log a few metrics, then tap
-            <strong> Regenerate </strong> and we&apos;ll surface the patterns
-            worth a closer look.
+            {t("empty")}
           </p>
         </Card>
       ) : (
-        GROUPS.map(({ sev, title, icon: Icon, color }) => {
+        GROUPS.map(({ sev, icon: Icon, color }) => {
           const items = insights.filter((i) => i.severity === sev);
           if (items.length === 0) return null;
           return (
             <section key={sev}>
               <div className="mb-3 flex items-center gap-2">
                 <Icon size={16} style={{ color }} />
-                <h2 className="font-display text-xl">{title}</h2>
+                <h2 className="font-display text-xl">{t(sev)}</h2>
                 <span className="text-sm text-[var(--color-fg-dim)]">{items.length}</span>
               </div>
               <div className="grid gap-4 lg:grid-cols-2">

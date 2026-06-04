@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import PrintButton from "@/components/PrintButton";
 import { getProfile } from "@/lib/db";
@@ -6,11 +7,12 @@ export const dynamic = "force-dynamic";
 
 export default async function Emergency() {
   const profile = await getProfile();
+  const t = await getTranslations("emergency");
 
   if (!profile) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--color-border-strong)] p-10 text-center text-[var(--color-fg-muted)]">
-        No emergency profile yet.
+        {t("noProfile")}
       </div>
     );
   }
@@ -23,34 +25,33 @@ export default async function Emergency() {
   return (
     <div className="space-y-6">
       <SectionTitle
-        eyebrow="In an emergency"
-        title="Emergency card"
+        eyebrow={t("eyebrow")}
+        title={t("title")}
         action={
           <div className="flex items-center gap-2">
-            <Badge tone="alert">⚠ Critical info</Badge>
-            <PrintButton />
+            <Badge tone="alert">{t("criticalInfo")}</Badge>
+            <PrintButton label={t("saveAsPdf")} />
           </div>
         }
       />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        The one page any first-responder or new doctor needs. Pin to your lock
-        screen — accessible without unlocking your account.
+        {t("intro")}
       </p>
 
       <Card className="bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-brand-soft)]">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
             <div className="text-xs uppercase tracking-wider text-[var(--color-fg-dim)]">
-              Patient
+              {t("patient")}
             </div>
             <div className="font-display text-3xl">{profile.name}</div>
             <div className="mt-1 text-sm text-[var(--color-fg-muted)]">
-              DOB {profile.dob} · {age} y/o
+              {t("dob")} {profile.dob} · {age} {t("yo")}
             </div>
           </div>
           <div className="text-right">
             <div className="text-xs uppercase tracking-wider text-[var(--color-fg-dim)]">
-              Blood type
+              {t("bloodType")}
             </div>
             <div className="font-display text-4xl text-[var(--color-alert)]">
               {profile.bloodType}
@@ -61,11 +62,11 @@ export default async function Emergency() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h3 className="mb-3 font-medium">Allergies</h3>
+          <h3 className="mb-3 font-medium">{t("allergies")}</h3>
           <div className="flex flex-wrap gap-2">
             {profile.allergies.length === 0 ? (
               <span className="text-sm text-[var(--color-fg-muted)]">
-                None on file.
+                {t("noneOnFile")}
               </span>
             ) : (
               profile.allergies.map((a) => (
@@ -78,7 +79,7 @@ export default async function Emergency() {
         </Card>
 
         <Card>
-          <h3 className="mb-3 font-medium">Conditions</h3>
+          <h3 className="mb-3 font-medium">{t("conditions")}</h3>
           <ul className="space-y-1 text-sm">
             {profile.conditions.map((c) => (
               <li key={c}>• {c}</li>
@@ -87,7 +88,7 @@ export default async function Emergency() {
         </Card>
 
         <Card>
-          <h3 className="mb-3 font-medium">Current medications</h3>
+          <h3 className="mb-3 font-medium">{t("currentMeds")}</h3>
           <ul className="space-y-2 text-sm">
             {profile.medications.map((m) => (
               <li key={m.name} className="flex justify-between gap-3">
@@ -104,7 +105,7 @@ export default async function Emergency() {
         </Card>
 
         <Card>
-          <h3 className="mb-3 font-medium">Emergency contacts</h3>
+          <h3 className="mb-3 font-medium">{t("emergencyContacts")}</h3>
           <ul className="space-y-2 text-sm">
             {profile.emergencyContacts.map((c) => (
               <li key={c.name} className="flex justify-between gap-3">
@@ -126,7 +127,7 @@ export default async function Emergency() {
         </Card>
 
         <Card>
-          <h3 className="mb-3 font-medium">Primary care</h3>
+          <h3 className="mb-3 font-medium">{t("primaryCare")}</h3>
           <div className="text-sm">
             <div className="font-medium">{profile.primaryDoctor.name}</div>
             <a
@@ -139,11 +140,11 @@ export default async function Emergency() {
         </Card>
 
         <Card>
-          <h3 className="mb-3 font-medium">Insurance</h3>
+          <h3 className="mb-3 font-medium">{t("insurance")}</h3>
           <div className="text-sm">
             <div>{profile.insurance.provider}</div>
             <div className="text-[var(--color-fg-muted)]">
-              Policy {profile.insurance.policyNumber}
+              {t("policy")} {profile.insurance.policyNumber}
             </div>
           </div>
         </Card>

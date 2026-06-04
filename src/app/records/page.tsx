@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { SectionTitle } from "@/components/Card";
 import RecordItem from "@/components/RecordItem";
 import RecordsToolbar from "@/components/RecordsToolbar";
@@ -13,6 +14,7 @@ export default async function Records({
   searchParams: Promise<{ type?: string; q?: string }>;
 }) {
   const { type, q } = await searchParams;
+  const t = await getTranslations("records");
   // WhatsApp ingestion is parked until the Meta Cloud API is set up — gate the
   // card behind a flag so it doesn't show a non-working feature in production.
   const waEnabled = process.env.NEXT_PUBLIC_WHATSAPP_ENABLED === "true";
@@ -33,13 +35,13 @@ export default async function Records({
 
   return (
     <div className="space-y-6">
-      <SectionTitle eyebrow="Your vault" title="Records" />
+      <SectionTitle eyebrow={t("eyebrow")} title={t("title")} />
       {waEnabled && <LinkWhatsApp linkedPhone={wa.linkedPhone} />}
       <RecordsToolbar activeType={type ?? "all"} initialQuery={q ?? ""} />
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[var(--color-border-strong)] p-10 text-center text-[var(--color-fg-muted)]">
-            Nothing here yet.
+            {t("empty")}
           </div>
         ) : (
           filtered.map((r) => <RecordItem key={r.id} record={r} />)

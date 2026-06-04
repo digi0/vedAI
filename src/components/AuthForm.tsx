@@ -2,7 +2,9 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { signIn, signUp, type AuthResult } from "@/lib/auth-actions";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function AuthForm({
   mode,
@@ -11,6 +13,7 @@ export default function AuthForm({
   mode: "login" | "signup";
   next?: string;
 }) {
+  const t = useTranslations("auth");
   const action = mode === "signup" ? signUp : signIn;
   const [state, formAction, pending] = useActionState<AuthResult, FormData>(
     action,
@@ -19,6 +22,9 @@ export default function AuthForm({
 
   return (
     <div className="mx-auto mt-16 max-w-sm">
+      <div className="mb-4 flex justify-center">
+        <LanguageSwitcher />
+      </div>
       <div className="mb-8 text-center">
         <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-brand)] text-white">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -26,12 +32,10 @@ export default function AuthForm({
           </svg>
         </div>
         <h1 className="font-display text-3xl">
-          {mode === "signup" ? "Create your account" : "Welcome back"}
+          {mode === "signup" ? t("createTitle") : t("welcomeTitle")}
         </h1>
         <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
-          {mode === "signup"
-            ? "Your health records, metrics, and insights — in one place."
-            : "Sign in to your Ved AI vault."}
+          {mode === "signup" ? t("createSub") : t("loginSub")}
         </p>
       </div>
 
@@ -40,7 +44,7 @@ export default function AuthForm({
 
         {mode === "signup" && (
           <Field
-            label="Full name"
+            label={t("fullName")}
             name="fullName"
             type="text"
             placeholder="Jane Doe"
@@ -48,7 +52,7 @@ export default function AuthForm({
           />
         )}
         <Field
-          label="Email"
+          label={t("email")}
           name="email"
           type="email"
           placeholder="you@example.com"
@@ -56,10 +60,10 @@ export default function AuthForm({
           required
         />
         <Field
-          label="Password"
+          label={t("password")}
           name="password"
           type="password"
-          placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+          placeholder={mode === "signup" ? t("passwordHintSignup") : "••••••••"}
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
           required
         />
@@ -78,24 +82,24 @@ export default function AuthForm({
           {pending
             ? "…"
             : mode === "signup"
-              ? "Create account"
-              : "Sign in"}
+              ? t("createBtn")
+              : t("signInBtn")}
         </button>
       </form>
 
       <p className="mt-5 text-center text-sm text-[var(--color-fg-muted)]">
         {mode === "signup" ? (
           <>
-            Already have an account?{" "}
+            {t("alreadyHave")}{" "}
             <Link href="/login" className="text-[var(--color-brand)] hover:underline">
-              Sign in
+              {t("signInLink")}
             </Link>
           </>
         ) : (
           <>
-            New here?{" "}
+            {t("newHere")}{" "}
             <Link href="/signup" className="text-[var(--color-brand)] hover:underline">
-              Create an account
+              {t("createLink")}
             </Link>
           </>
         )}

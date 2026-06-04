@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createShareToken } from "@/lib/actions";
 
 export default function ShareManager({
@@ -10,6 +11,7 @@ export default function ShareManager({
   tokens: { token: string; expiresAt: string; revokedAt: string | null }[];
 }) {
   const router = useRouter();
+  const t = useTranslations("share");
   const [pending, startTransition] = useTransition();
   const [lastUrl, setLastUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -40,9 +42,9 @@ export default function ShareManager({
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-medium">Generate a new share link</div>
+          <div className="text-sm font-medium">{t("generateTitle")}</div>
           <div className="text-xs text-[var(--color-fg-muted)]">
-            Valid for 72 hours. {activeCount} active link(s) currently.
+            {t("generateSub", { count: activeCount })}
           </div>
         </div>
         <button
@@ -50,7 +52,7 @@ export default function ShareManager({
           disabled={pending}
           className="rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white disabled:opacity-50"
         >
-          {pending ? "Generating…" : "Generate link"}
+          {pending ? t("generating") : t("generateBtn")}
         </button>
       </div>
 
@@ -63,7 +65,7 @@ export default function ShareManager({
             onClick={copy}
             className="rounded-md border border-[var(--color-brand)] bg-[var(--color-surface)] px-3 py-1 text-sm text-[var(--color-brand)]"
           >
-            {copied ? "Copied ✓" : "Copy"}
+            {copied ? t("copied") : t("copy")}
           </button>
         </div>
       )}
