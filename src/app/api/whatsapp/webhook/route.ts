@@ -1,142 +1,161 @@
+import { after } from "next/server";
 import { serverAdmin } from "@/lib/supabase";
 import { ingestDocumentBytes } from "@/lib/ingest";
 import {
-  validateTwilioSignature,
-  downloadTwilioMedia,
-  extFromContentType,
-  normalizePhone,
-  twimlReply,
+  verifyMetaSignature,
+  parseInbound,
+  downloadMetaMedia,
+  sendWhatsappText,
+  extFromMime,
+  type InboundMessage,
 } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
-// Parsing a PDF can take a few seconds — give the function headroom.
 export const maxDuration = 30;
 
-const SID = process.env.TWILIO_ACCOUNT_SID ?? "";
-const TOKEN = process.env.TWILIO_AUTH_TOKEN ?? "";
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN ?? "";
+const APP_SECRET = process.env.WHATSAPP_APP_SECRET ?? "";
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN ?? "";
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID ?? "";
 
-function reconstructUrl(req: Request): string {
-  if (process.env.TWILIO_WEBHOOK_URL) return process.env.TWILIO_WEBHOOK_URL;
-  const u = new URL(req.url);
-  const proto = req.headers.get("x-forwarded-proto") ?? u.protocol.replace(":", "");
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? u.host;
-  return `${proto}://${host}${u.pathname}`;
+/** Meta webhook verification handshake (run once when you set the callback URL). */
+export function GET(req: Request) {
+  const url = new URL(req.url);
+  const mode = url.searchParams.get("hub.mode");
+  const token = url.searchParams.get("hub.verify_token");
+  const challenge = url.searchParams.get("hub.challenge");
+  if (mode === "subscribe" && token === VERIFY_TOKEN && challenge) {
+    return new Response(challenge, {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    });
+  }
+  return new Response("forbidden", { status: 403 });
 }
 
 export async function POST(req: Request) {
-  const form = await req.formData();
-  const params: Record<string, string> = {};
-  for (const [k, v] of form.entries()) params[k] = typeof v === "string" ? v : "";
+  const raw = await req.text();
 
-  // Verify the request really came from Twilio (skipped only if no token set).
-  if (TOKEN) {
-    const ok = validateTwilioSignature(
-      TOKEN,
-      req.headers.get("x-twilio-signature"),
-      reconstructUrl(req),
-      params,
-    );
+  if (APP_SECRET) {
+    const ok = verifyMetaSignature(APP_SECRET, req.headers.get("x-hub-signature-256"), raw);
     if (!ok) {
       console.warn("[whatsapp] signature validation failed");
       return new Response("invalid signature", { status: 403 });
     }
   }
 
-  const phone = normalizePhone(params.From ?? "");
-  const body = (params.Body ?? "").trim();
-  const numMedia = parseInt(params.NumMedia ?? "0", 10) || 0;
-  const sb = serverAdmin();
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return new Response("bad json", { status: 400 });
+  }
 
-  // ── Media message → ingest into the linked account ──
-  if (numMedia > 0) {
+  const msg = parseInbound(body);
+  // Ack immediately so Meta doesn't retry; do the slow work (download/parse/
+  // reply) after the response.
+  if (msg) {
+    after(async () => {
+      try {
+        await handleMessage(msg);
+      } catch (e) {
+        console.error("[whatsapp] handler error:", e);
+      }
+    });
+  }
+  return new Response("ok", { status: 200 });
+}
+
+async function handleMessage(msg: NonNullable<InboundMessage>) {
+  const sb = serverAdmin();
+  const reply = (text: string) =>
+    sendWhatsappText({
+      phoneNumberId: PHONE_NUMBER_ID,
+      token: ACCESS_TOKEN,
+      to: msg.from,
+      body: text,
+    });
+
+  // ── Media → ingest into the linked account ──
+  if (msg.kind === "media") {
     const { data: link } = await sb
       .from("whatsapp_links")
       .select("user_id")
-      .eq("phone", phone)
+      .eq("phone", msg.from)
       .maybeSingle();
 
     if (!link) {
-      return twimlReply(
+      await reply(
         "👋 I don't recognize this number yet. Open Ved AI → Records → " +
           "Link WhatsApp, and send me the 6-character code shown there.",
       );
+      return;
     }
 
-    const mediaUrl = params.MediaUrl0;
-    const ct = params.MediaContentType0;
-    const ext = extFromContentType(ct);
-    if (!mediaUrl || ext === "bin") {
-      return twimlReply(
-        "I can take PDF lab reports/prescriptions (and photos). That file type isn't supported yet.",
-      );
+    const ext = extFromMime(msg.mime);
+    if (ext === "bin") {
+      await reply("I can take PDF lab reports/prescriptions (and photos). That file type isn't supported yet.");
+      return;
     }
 
     try {
-      const bytes = await downloadTwilioMedia(mediaUrl, SID, TOKEN);
-      const fileName = `whatsapp-${Date.now()}.${ext}`;
+      const { bytes } = await downloadMetaMedia(msg.mediaId, ACCESS_TOKEN);
       const out = await ingestDocumentBytes({
         userId: link.user_id,
         bytes,
-        fileName,
+        fileName: msg.filename || `whatsapp-${Date.now()}.${ext}`,
       });
-      if (out.parsed) {
-        return twimlReply(
-          `✅ Added "${out.title}".` +
-            (out.labValues > 0 ? ` ${out.labValues} values tracked.` : "") +
-            " Open Ved AI to see it in your vault.",
-        );
-      }
-      return twimlReply(
-        "📄 Saved to your vault, but I couldn't auto-read it — it's marked " +
-          "'Pending review.' (PDFs parse best.)",
+      await reply(
+        out.parsed
+          ? `✅ Added "${out.title}".` +
+              (out.labValues > 0 ? ` ${out.labValues} values tracked.` : "") +
+              " Open Ved AI to see it in your vault."
+          : "📄 Saved to your vault, but I couldn't auto-read it — it's marked 'Pending review.' (PDFs parse best.)",
       );
     } catch (e) {
       console.error("[whatsapp] ingest failed:", e);
-      return twimlReply(
-        "Something went wrong saving that file. Please try again in a moment.",
-      );
+      await reply("Something went wrong saving that file. Please try again in a moment.");
     }
+    return;
   }
 
-  // ── Text message ──
-  // Is it a pending link code? (6 alphanumerics)
-  const maybeCode = body.toUpperCase().replace(/\s+/g, "");
-  if (/^[A-Z0-9]{6}$/.test(maybeCode)) {
-    const { data: codeRow } = await sb
-      .from("whatsapp_link_codes")
-      .select("user_id, expires_at")
-      .eq("code", maybeCode)
+  // ── Text ──
+  if (msg.kind === "text") {
+    const code = msg.text.trim().toUpperCase().replace(/\s+/g, "");
+    if (/^[A-Z0-9]{6}$/.test(code)) {
+      const { data: codeRow } = await sb
+        .from("whatsapp_link_codes")
+        .select("user_id, expires_at")
+        .eq("code", code)
+        .maybeSingle();
+
+      if (codeRow && new Date(codeRow.expires_at) > new Date()) {
+        await sb
+          .from("whatsapp_links")
+          .upsert({ phone: msg.from, user_id: codeRow.user_id }, { onConflict: "phone" });
+        await sb.from("whatsapp_link_codes").delete().eq("code", code);
+        await reply(
+          "✅ Linked to your Ved AI account! Forward any lab report or " +
+            "prescription here and I'll add it to your vault.",
+        );
+        return;
+      }
+      await reply(
+        "That code is invalid or expired. Open Ved AI → Records → Link WhatsApp for a fresh one.",
+      );
+      return;
+    }
+
+    const { data: link } = await sb
+      .from("whatsapp_links")
+      .select("user_id")
+      .eq("phone", msg.from)
       .maybeSingle();
-
-    if (codeRow && new Date(codeRow.expires_at) > new Date()) {
-      await sb
-        .from("whatsapp_links")
-        .upsert({ phone, user_id: codeRow.user_id }, { onConflict: "phone" });
-      await sb.from("whatsapp_link_codes").delete().eq("code", maybeCode);
-      return twimlReply(
-        "✅ Linked to your Ved AI account! Forward any lab report or " +
-          "prescription here and I'll add it to your vault.",
-      );
-    }
-    return twimlReply(
-      "That code is invalid or expired. Open Ved AI → Records → Link WhatsApp for a fresh one.",
+    await reply(
+      link
+        ? "Forward me a lab report or prescription (PDF works best) and I'll add it to your vault. 📎"
+        : "👋 I'm the Ved AI assistant. To link this number, open Ved AI → Records → " +
+            "Link WhatsApp and send me the 6-character code.",
     );
   }
-
-  // Linked already?
-  const { data: link } = await sb
-    .from("whatsapp_links")
-    .select("user_id")
-    .eq("phone", phone)
-    .maybeSingle();
-
-  if (link) {
-    return twimlReply(
-      "Forward me a lab report or prescription (PDF works best) and I'll add it to your vault. 📎",
-    );
-  }
-  return twimlReply(
-    "👋 I'm the Ved AI assistant. To link this number, open Ved AI → Records → " +
-      "Link WhatsApp and send me the 6-character code.",
-  );
 }

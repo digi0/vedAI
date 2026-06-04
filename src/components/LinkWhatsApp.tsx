@@ -8,7 +8,6 @@ import {
 } from "@/lib/whatsapp-actions";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
-const WA_JOIN = process.env.NEXT_PUBLIC_WHATSAPP_JOIN ?? ""; // sandbox "join xyz-abc"
 
 export default function LinkWhatsApp({ linkedPhone }: { linkedPhone: string | null }) {
   const [open, setOpen] = useState(false);
@@ -83,25 +82,13 @@ export default function LinkWhatsApp({ linkedPhone }: { linkedPhone: string | nu
 
           {open && code && !linked && (
             <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 text-sm">
-              <ol className="list-decimal space-y-2 pl-5 text-[var(--color-fg-muted)]">
-                {WA_JOIN && (
-                  <li>
-                    On WhatsApp, message{" "}
-                    <span className="font-medium text-[var(--color-fg)]">
-                      {WA_NUMBER || "the Ved AI number"}
-                    </span>{" "}
-                    with <span className="font-mono text-[var(--color-fg)]">{WA_JOIN}</span>{" "}
-                    to connect to the sandbox.
-                  </li>
-                )}
-                <li>
-                  Then send this code to{" "}
-                  <span className="font-medium text-[var(--color-fg)]">
-                    {WA_NUMBER || "the same number"}
-                  </span>
-                  :
-                </li>
-              </ol>
+              <p className="text-[var(--color-fg-muted)]">
+                On WhatsApp, send this code to{" "}
+                <span className="font-medium text-[var(--color-fg)]">
+                  {WA_NUMBER || "the Ved AI number"}
+                </span>
+                :
+              </p>
               <div className="mt-3 flex items-center gap-2">
                 <code className="rounded-md bg-[var(--color-surface-2)] px-3 py-2 font-mono text-lg tracking-widest">
                   {code}
