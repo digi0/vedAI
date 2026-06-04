@@ -13,7 +13,13 @@ export default async function Records({
   searchParams: Promise<{ type?: string; q?: string }>;
 }) {
   const { type, q } = await searchParams;
-  const [all, wa] = await Promise.all([listRecords(), getWhatsappStatus()]);
+  // WhatsApp ingestion is parked until the Meta Cloud API is set up — gate the
+  // card behind a flag so it doesn't show a non-working feature in production.
+  const waEnabled = process.env.NEXT_PUBLIC_WHATSAPP_ENABLED === "true";
+  const [all, wa] = await Promise.all([
+    listRecords(),
+    waEnabled ? getWhatsappStatus() : Promise.resolve({ linkedPhone: null }),
+  ]);
 
   const filtered = all
     .filter((r) => (type && type !== "all" ? r.type === type : true))
@@ -28,7 +34,7 @@ export default async function Records({
   return (
     <div className="space-y-6">
       <SectionTitle eyebrow="Your vault" title="Records" />
-      <LinkWhatsApp linkedPhone={wa.linkedPhone} />
+      {waEnabled && <LinkWhatsApp linkedPhone={wa.linkedPhone} />}
       <RecordsToolbar activeType={type ?? "all"} initialQuery={q ?? ""} />
       <div className="space-y-3">
         {filtered.length === 0 ? (

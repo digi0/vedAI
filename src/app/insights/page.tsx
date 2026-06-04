@@ -20,15 +20,15 @@ export default async function Insights() {
         action={<RegenerateInsightsButton />}
       />
       <p className="max-w-2xl text-sm text-[var(--color-fg-muted)]">
-        Patterns drawn from your records and metrics by a local LLM (Ollama).
-        These are signals, not diagnoses — always discuss with your doctor.
+        Patterns we spotted across your records and metrics. These are signals
+        to explore, not diagnoses — always check with your doctor.
       </p>
       {insights.length === 0 ? (
         <Card>
           <p className="text-sm text-[var(--color-fg-muted)]">
-            No insights yet. Upload a record or log some metrics, then click
-            <strong> Regenerate </strong> above. The model reads your
-            structured data and writes the insights you see here.
+            No insights yet. Upload a record or log a few metrics, then tap
+            <strong> Regenerate </strong> and we&apos;ll surface the patterns
+            worth a closer look.
           </p>
         </Card>
       ) : null}
