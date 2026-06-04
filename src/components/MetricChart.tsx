@@ -57,17 +57,35 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
         </span>
       </div>
 
-      {/* Slim range bar: track · healthy zone · your dot */}
-      <div className="relative mt-3.5 h-1.5 rounded-full bg-[var(--color-surface-2)]">
+      {/* Range bar: track · healthy zone · boundary ticks · your dot */}
+      <div className="relative mt-4 h-2.5 rounded-full bg-[var(--color-surface-2)]">
         {series.healthyRange && (
-          <div
-            className="absolute inset-y-0 rounded-full bg-[var(--color-ok-soft)]"
-            style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
-          />
+          <>
+            {/* healthy zone — stronger green so it actually reads */}
+            <div
+              className="absolute inset-y-0 rounded-full bg-[var(--color-ok)] opacity-30"
+              style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
+            />
+            {/* edge ticks so the boundary is legible even with the dot on it */}
+            <span
+              className="absolute top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-[var(--color-ok)]"
+              style={{ left: `${pct(lo)}%` }}
+            />
+            <span
+              className="absolute top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-[var(--color-ok)]"
+              style={{ left: `${pct(hi)}%` }}
+            />
+          </>
         )}
-        <div
-          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--color-surface)]"
-          style={{ left: `${pct(v)}%`, backgroundColor: color }}
+        {/* your value — bigger dot, white ring + dark hairline so it pops on
+            any background and stays readable when sitting on a boundary tick */}
+        <span
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-[2.5px] ring-[var(--color-surface)]"
+          style={{
+            left: `${pct(v)}%`,
+            backgroundColor: color,
+            boxShadow: "0 0 0 1px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.25)",
+          }}
         />
       </div>
 
