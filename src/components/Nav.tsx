@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/supabase";
 import { signOut } from "@/lib/auth-actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import BottomTabBar from "@/components/BottomTabBar";
+import VedChat from "@/components/VedChat";
 
 const links = [
   { href: "/", label: "Overview" },
@@ -72,6 +73,9 @@ export default async function Nav() {
 
       {/* Mobile bottom tab bar (hidden on desktop) */}
       <BottomTabBar />
+
+      {/* Ved — floating health copilot (signed-in only, since Nav returns null otherwise) */}
+      <VedChat />
     </>
   );
 }
