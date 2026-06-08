@@ -2,15 +2,37 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getLocale } from "next-intl/server";
 import { getSessionUser } from "@/lib/supabase";
 import { buildVedSystemPrompt } from "@/lib/ved";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
+
+// 20 messages per user per minute — generous for normal use, blocks abuse.
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Rate limit per authenticated user.
+  const { allowed, remaining, resetAt } = rateLimit(
+    `ved:${user.id}`,
+    RATE_LIMIT,
+    RATE_WINDOW_MS,
+  );
+  if (!allowed) {
+    return new Response("Too many requests — please wait a moment.", {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
+        "X-RateLimit-Remaining": "0",
+      },
+    });
+  }
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return new Response("Ved isn't configured on this environment.", { status: 503 });
   }
@@ -71,6 +93,10 @@ export async function POST(req: Request) {
   });
 
   return new Response(body, {
-    headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+      "X-RateLimit-Remaining": String(remaining),
+    },
   });
 }

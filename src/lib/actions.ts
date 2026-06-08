@@ -18,6 +18,7 @@ import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
 import { ingestDocumentBytes } from "./ingest";
 import type { RecordType, DeliveryMethod, OrderItem } from "./types";
+import { rateLimit } from "./rate-limit";
 
 // ---------- records ----------
 
@@ -181,9 +182,23 @@ export type InsightsResult =
  * abnormal lab values to keep the prompt compact. Returns the real error
  * to the client (prod redacts thrown server-action errors).
  */
+// 3 regenerations per user per 10 minutes — LLM calls are expensive.
+const INSIGHTS_RATE_LIMIT = 3;
+const INSIGHTS_RATE_WINDOW_MS = 10 * 60 * 1000;
+
 export async function regenerateInsights(): Promise<InsightsResult> {
   try {
     const userId = await requireUserId();
+
+    const { allowed } = rateLimit(
+      `insights:${userId}`,
+      INSIGHTS_RATE_LIMIT,
+      INSIGHTS_RATE_WINDOW_MS,
+    );
+    if (!allowed) {
+      return { ok: false, error: "Too many requests — please wait a few minutes before regenerating insights again." };
+    }
+
     const sb = serverAdmin();
 
     const [profile, metrics, recordsRes] = await Promise.all([
