@@ -249,6 +249,9 @@ export type ShareToken = {
   expiresAt: string;
   revokedAt: string | null;
   viewedCount: number;
+  includeRecords: boolean;
+  includeMetrics: boolean;
+  includeProfile: boolean;
 };
 
 export async function getShareByToken(token: string): Promise<ShareToken | null> {
@@ -266,6 +269,9 @@ export async function getShareByToken(token: string): Promise<ShareToken | null>
     expiresAt: data.expires_at,
     revokedAt: data.revoked_at,
     viewedCount: data.viewed_count,
+    includeRecords: data.include_records ?? true,
+    includeMetrics: data.include_metrics ?? true,
+    includeProfile: data.include_profile ?? true,
   };
 }
 
