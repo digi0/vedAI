@@ -263,8 +263,12 @@ export async function regenerateInsights(): Promise<InsightsResult> {
   const llm = getLLM();
   const insights = await llm.generateInsights(ctx, locale);
 
-  // Replace stored insights atomically-ish: delete then insert.
-  await sb.from("insights").delete().eq("user_id", userId);
+  // Capture the cutoff BEFORE inserting so the subsequent delete only
+  // removes rows that existed before this run (not the ones we're about
+  // to write). This makes the replacement effectively atomic: if the insert
+  // fails, we throw and the old insights are untouched.
+  const cutoff = new Date().toISOString();
+
   if (insights.length > 0) {
     const { error } = await sb.from("insights").insert(
       insights.map((i) => ({
@@ -277,6 +281,9 @@ export async function regenerateInsights(): Promise<InsightsResult> {
     );
     if (error) throw new Error(error.message);
   }
+
+  // New insights are persisted — safe to purge the previous ones.
+  await sb.from("insights").delete().eq("user_id", userId).lt("created_at", cutoff);
 
   revalidatePath("/insights");
   revalidatePath("/");
