@@ -24,7 +24,7 @@ export default function OnboardingChecklist({
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
-    <section className="rounded-2xl border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)] p-5">
+    <section className="glass rounded-2xl p-5">
       <div className="mb-1 flex items-center justify-between gap-3">
         <h2 className="font-display text-lg">{t("title")}</h2>
         <span className="shrink-0 text-xs text-[var(--color-fg-muted)]">

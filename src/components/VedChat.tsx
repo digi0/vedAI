@@ -167,7 +167,7 @@ export default function VedChat() {
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/40 md:hidden"
           />
-          <div className="absolute inset-x-0 bottom-0 flex h-[82vh] flex-col rounded-t-2xl border border-[var(--color-border)] bg-[var(--color-surface)] md:static md:h-[600px] md:w-[390px] md:rounded-2xl md:shadow-2xl md:shadow-black/20">
+          <div className="glass absolute inset-x-0 bottom-0 flex h-[82vh] flex-col rounded-t-2xl md:static md:h-[600px] md:w-[390px] md:rounded-2xl">
             {/* header */}
             <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
               <div className="flex items-center gap-2">

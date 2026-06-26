@@ -78,7 +78,7 @@ export default function BottomTabBar() {
   return (
     <>
       {/* ── Mobile bottom tab bar ── */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-bg)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+      <nav className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="mx-auto flex max-w-md items-stretch">
           {tabs.map((tab) => {
             const active = isActive(tab.href);
@@ -129,7 +129,7 @@ export default function BottomTabBar() {
         />
         {/* Panel */}
         <div
-          className={`absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-[var(--color-border)] bg-[var(--color-surface)] pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2 transition-transform duration-250 ease-out ${
+          className={`glass absolute inset-x-0 bottom-0 rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2 transition-transform duration-250 ease-out ${
             moreOpen ? "translate-y-0" : "translate-y-full"
           }`}
         >

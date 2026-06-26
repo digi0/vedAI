@@ -25,6 +25,7 @@ export default function AuthForm({
       <div className="mb-4 flex justify-center">
         <LanguageSwitcher />
       </div>
+      <div className="glass rounded-2xl p-6 sm:p-7">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-brand)] text-white">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -104,6 +105,7 @@ export default function AuthForm({
           </>
         )}
       </p>
+      </div>
     </div>
   );
 }

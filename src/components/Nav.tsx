@@ -25,7 +25,7 @@ export default async function Nav() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="glass-bar sticky top-0 z-20 border-b border-[var(--color-border)] pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <Link href="/" className="flex items-center gap-2">
             <span

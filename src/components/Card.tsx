@@ -11,7 +11,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 ${
+      className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 ${
         interactive ? "card-interactive cursor-pointer" : ""
       } ${className}`}
     >

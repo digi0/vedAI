@@ -23,7 +23,7 @@ export default function HealthSummary({
   const pctLabel = tracked > 0 ? Math.round(pct * 100) : 0;
 
   return (
-    <section className="fade-up overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
+    <section className="fade-up glass overflow-hidden rounded-2xl p-5 sm:p-6">
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
         <Link href="/metrics" className="shrink-0" aria-label="View metrics">
           <ProgressRing value={pct} size={148} stroke={14}>
