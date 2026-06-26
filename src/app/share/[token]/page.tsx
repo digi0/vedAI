@@ -46,12 +46,20 @@ export default async function DoctorShare({
     );
   }
 
-  // Fetch the shared user's data — uses service_role, gated only by the token.
+  // Fetch only the sections the token owner chose to share.
   const [profile, records, metrics, insights] = await Promise.all([
-    getProfile({ userId: share.userId, admin: true }),
-    listRecords({ userId: share.userId, admin: true }),
-    listMetrics({ userId: share.userId, admin: true }),
-    listInsights({ userId: share.userId, admin: true }),
+    share.includeProfile
+      ? getProfile({ userId: share.userId, admin: true })
+      : Promise.resolve(null),
+    share.includeRecords
+      ? listRecords({ userId: share.userId, admin: true })
+      : Promise.resolve([]),
+    share.includeMetrics
+      ? listMetrics({ userId: share.userId, admin: true })
+      : Promise.resolve([]),
+    share.includeMetrics
+      ? listInsights({ userId: share.userId, admin: true })
+      : Promise.resolve([]),
   ]);
 
   // best-effort view counter — don't block render

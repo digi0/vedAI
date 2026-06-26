@@ -18,6 +18,7 @@ import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
 import { ingestDocumentBytes } from "./ingest";
 import type { RecordType, DeliveryMethod, OrderItem, EmergencyProfile } from "./types";
+import { rateLimit } from "./rate-limit";
 
 // ---------- records ----------
 
@@ -234,9 +235,23 @@ export type InsightsResult =
  * abnormal lab values to keep the prompt compact. Returns the real error
  * to the client (prod redacts thrown server-action errors).
  */
+// 3 regenerations per user per 10 minutes — LLM calls are expensive.
+const INSIGHTS_RATE_LIMIT = 3;
+const INSIGHTS_RATE_WINDOW_MS = 10 * 60 * 1000;
+
 export async function regenerateInsights(): Promise<InsightsResult> {
   try {
     const userId = await requireUserId();
+
+    const { allowed } = rateLimit(
+      `insights:${userId}`,
+      INSIGHTS_RATE_LIMIT,
+      INSIGHTS_RATE_WINDOW_MS,
+    );
+    if (!allowed) {
+      return { ok: false, error: "Too many requests — please wait a few minutes before regenerating insights again." };
+    }
+
     const sb = serverAdmin();
 
     const [profile, metrics, recordsRes] = await Promise.all([
@@ -301,8 +316,12 @@ export async function regenerateInsights(): Promise<InsightsResult> {
   const llm = getLLM();
   const insights = await llm.generateInsights(ctx, locale);
 
-  // Replace stored insights atomically-ish: delete then insert.
-  await sb.from("insights").delete().eq("user_id", userId);
+  // Capture the cutoff BEFORE inserting so the subsequent delete only
+  // removes rows that existed before this run (not the ones we're about
+  // to write). This makes the replacement effectively atomic: if the insert
+  // fails, we throw and the old insights are untouched.
+  const cutoff = new Date().toISOString();
+
   if (insights.length > 0) {
     const { error } = await sb.from("insights").insert(
       insights.map((i) => ({
@@ -315,6 +334,9 @@ export async function regenerateInsights(): Promise<InsightsResult> {
     );
     if (error) throw new Error(error.message);
   }
+
+  // New insights are persisted — safe to purge the previous ones.
+  await sb.from("insights").delete().eq("user_id", userId).lt("created_at", cutoff);
 
   revalidatePath("/insights");
   revalidatePath("/");

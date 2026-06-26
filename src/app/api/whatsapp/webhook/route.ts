@@ -34,14 +34,19 @@ export function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // WHATSAPP_APP_SECRET must be configured — we refuse to process webhooks
+  // without signature verification to prevent spoofed requests from any IP.
+  if (!APP_SECRET) {
+    console.error("[whatsapp] WHATSAPP_APP_SECRET is not set — webhook disabled");
+    return new Response("webhook not configured", { status: 503 });
+  }
+
   const raw = await req.text();
 
-  if (APP_SECRET) {
-    const ok = verifyMetaSignature(APP_SECRET, req.headers.get("x-hub-signature-256"), raw);
-    if (!ok) {
-      console.warn("[whatsapp] signature validation failed");
-      return new Response("invalid signature", { status: 403 });
-    }
+  const ok = verifyMetaSignature(APP_SECRET, req.headers.get("x-hub-signature-256"), raw);
+  if (!ok) {
+    console.warn("[whatsapp] signature validation failed");
+    return new Response("invalid signature", { status: 403 });
   }
 
   let body: unknown;

@@ -249,6 +249,9 @@ export type ShareToken = {
   expiresAt: string;
   revokedAt: string | null;
   viewedCount: number;
+  includeRecords: boolean;
+  includeMetrics: boolean;
+  includeProfile: boolean;
 };
 
 export async function getShareByToken(token: string): Promise<ShareToken | null> {
@@ -266,15 +269,16 @@ export async function getShareByToken(token: string): Promise<ShareToken | null>
     expiresAt: data.expires_at,
     revokedAt: data.revoked_at,
     viewedCount: data.viewed_count,
+    includeRecords: data.include_records ?? true,
+    includeMetrics: data.include_metrics ?? true,
+    includeProfile: data.include_profile ?? true,
   };
 }
 
 export async function bumpShareView(token: string) {
-  const existing = await getShareByToken(token);
-  if (!existing) return;
+  // Use a raw SQL increment to avoid the read-modify-write race that drops
+  // counts when concurrent requests both read the same value before either
+  // writes. Supabase exposes this via rpc or the PostgREST increment syntax.
   const sb = serverAdmin();
-  await sb
-    .from("share_tokens")
-    .update({ viewed_count: existing.viewedCount + 1 })
-    .eq("token", token);
+  await sb.rpc("increment_share_view", { p_token: token });
 }
