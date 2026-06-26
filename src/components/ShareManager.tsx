@@ -47,11 +47,7 @@ export default function ShareManager({
             {t("generateSub", { count: activeCount })}
           </div>
         </div>
-        <button
-          onClick={generate}
-          disabled={pending}
-          className="rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white disabled:opacity-50"
-        >
+        <button onClick={generate} disabled={pending} className="btn btn-primary">
           {pending ? t("generating") : t("generateBtn")}
         </button>
       </div>
@@ -61,10 +57,7 @@ export default function ShareManager({
           <code className="min-w-0 flex-1 truncate font-mono text-sm">
             {lastUrl}
           </code>
-          <button
-            onClick={copy}
-            className="rounded-md border border-[var(--color-brand)] bg-[var(--color-surface)] px-3 py-1 text-sm text-[var(--color-brand)]"
-          >
+          <button onClick={copy} className="btn btn-glass btn-sm">
             {copied ? t("copied") : t("copy")}
           </button>
         </div>

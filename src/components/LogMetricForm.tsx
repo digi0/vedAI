@@ -19,10 +19,7 @@ export default function LogMetricForm() {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-sm"
-      >
+      <button onClick={() => setOpen(true)} className="btn btn-glass btn-sm">
         {tm("logNewReading")}
       </button>
     );
@@ -64,13 +61,13 @@ export default function LogMetricForm() {
       <button
         onClick={submit}
         disabled={pending || !value}
-        className="rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        className="btn btn-primary btn-sm"
       >
         {pending ? tc("saving") : tc("save")}
       </button>
       <button
         onClick={() => setOpen(false)}
-        className="rounded-md px-2 py-1.5 text-sm text-[var(--color-fg-muted)]"
+        className="btn btn-sm text-[var(--color-fg-muted)]"
       >
         {tc("cancel")}
       </button>

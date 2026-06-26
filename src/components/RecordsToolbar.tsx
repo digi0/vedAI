@@ -95,7 +95,7 @@ export default function RecordsToolbar({
           </button>
         ))}
       </div>
-      <label className="cursor-pointer rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white">
+      <label className="btn btn-primary">
         {uploading ? tc("uploading") : pending ? "…" : tc("upload")}
         <input
           type="file"

@@ -60,10 +60,7 @@ export default function OnboardingChecklist({
               )}
             </div>
             {!s.done && (
-              <Link
-                href={s.href}
-                className="shrink-0 rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--color-brand-strong)]"
-              >
+              <Link href={s.href} className="btn btn-primary btn-sm shrink-0">
                 {s.cta}
               </Link>
             )}

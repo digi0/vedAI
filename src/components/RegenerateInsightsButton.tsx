@@ -29,11 +29,7 @@ export default function RegenerateInsightsButton() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
-        onClick={run}
-        disabled={pending}
-        className="rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm text-white disabled:opacity-60"
-      >
+      <button onClick={run} disabled={pending} className="btn btn-primary btn-sm">
         {pending ? t("thinking") : t("regenerate")}
       </button>
       {error && (

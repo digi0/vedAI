@@ -198,11 +198,7 @@ export default function ProfileForm({ initial }: { initial: EmergencyProfile | n
       </Section>
 
       <div className="flex items-center gap-3 border-t border-[var(--color-border)] pt-5">
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)] disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className="btn btn-primary">
           {pending && <Loader2 size={16} className="animate-spin" />}
           {pending ? tc("saving") : t("saveProfile")}
         </button>

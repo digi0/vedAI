@@ -58,22 +58,13 @@ export default async function Overview() {
           {t("title")}
         </h1>
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <Link
-            href="/share"
-            className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
-          >
+          <Link href="/share" className="btn btn-primary">
             <Share2 size={16} /> {t("shareWithDoctor")}
           </Link>
-          <Link
-            href="/pharmacy"
-            className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
-          >
+          <Link href="/pharmacy" className="btn btn-glass">
             <Pill size={16} /> {t("orderMedication")}
           </Link>
-          <Link
-            href="/emergency"
-            className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-2 text-sm hover:bg-[var(--color-surface-2)]"
-          >
+          <Link href="/emergency" className="btn btn-glass">
             <HeartPulse size={16} /> {t("emergencyCard")}
           </Link>
         </div>
