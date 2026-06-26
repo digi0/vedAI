@@ -58,6 +58,12 @@ export default async function Nav() {
             >
               {t("shareWithDoctor")}
             </Link>
+            <Link
+              href="/profile"
+              className="rounded-md px-3 py-1.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+            >
+              {t("profile")}
+            </Link>
             <form action={signOut} className="ml-1">
               <button
                 type="submit"

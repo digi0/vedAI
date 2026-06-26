@@ -5,6 +5,7 @@ import { Card, SectionTitle, Badge } from "@/components/Card";
 import MetricChart from "@/components/MetricChart";
 import RecordItem from "@/components/RecordItem";
 import HealthSummary from "@/components/HealthSummary";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { listRecords, listMetrics, getProfile, listInsights } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,15 @@ export default async function Overview() {
   const totalTracked = metrics.filter((m) => m.points.length > 0).length;
   const alertCount = insights.filter((i) => i.severity === "alert").length;
 
+  const hasRecords = records.length > 0;
+  const profileDone = !!(
+    profile &&
+    (profile.dob ||
+      profile.bloodType ||
+      profile.allergies.length > 0 ||
+      profile.conditions.length > 0)
+  );
+
   return (
     <div className="space-y-10">
       <section>
@@ -68,6 +78,8 @@ export default async function Overview() {
           </Link>
         </div>
       </section>
+
+      <OnboardingChecklist profileDone={profileDone} hasRecords={hasRecords} />
 
       <HealthSummary
         inRange={metricsInRange}

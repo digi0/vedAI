@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import PrintButton from "@/components/PrintButton";
@@ -11,16 +12,24 @@ export default async function Emergency() {
 
   if (!profile) {
     return (
-      <div className="rounded-lg border border-dashed border-[var(--color-border-strong)] p-10 text-center text-[var(--color-fg-muted)]">
-        {t("noProfile")}
+      <div className="rounded-2xl border border-dashed border-[var(--color-border-strong)] p-10 text-center">
+        <p className="text-[var(--color-fg-muted)]">{t("noProfile")}</p>
+        <Link
+          href="/profile"
+          className="mt-4 inline-flex rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-brand-strong)]"
+        >
+          {t("setUpProfile")}
+        </Link>
       </div>
     );
   }
 
-  const age = Math.floor(
-    (Date.now() - new Date(profile.dob).getTime()) /
-      (365.25 * 24 * 60 * 60 * 1000),
-  );
+  const age = profile.dob
+    ? Math.floor(
+        (Date.now() - new Date(profile.dob).getTime()) /
+          (365.25 * 24 * 60 * 60 * 1000),
+      )
+    : null;
 
   return (
     <div className="space-y-6">
@@ -30,6 +39,12 @@ export default async function Emergency() {
         action={
           <div className="flex items-center gap-2">
             <Badge tone="alert">{t("criticalInfo")}</Badge>
+            <Link
+              href="/profile"
+              className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm hover:bg-[var(--color-surface-2)]"
+            >
+              {t("edit")}
+            </Link>
             <PrintButton label={t("saveAsPdf")} />
           </div>
         }
@@ -45,9 +60,11 @@ export default async function Emergency() {
               {t("patient")}
             </div>
             <div className="font-display text-3xl">{profile.name}</div>
-            <div className="mt-1 text-sm text-[var(--color-fg-muted)]">
-              {t("dob")} {profile.dob} · {age} {t("yo")}
-            </div>
+            {profile.dob && (
+              <div className="mt-1 text-sm text-[var(--color-fg-muted)]">
+                {t("dob")} {profile.dob} · {age} {t("yo")}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="text-xs uppercase tracking-wider text-[var(--color-fg-dim)]">

@@ -21,6 +21,7 @@ const I = {
   pill: <path d="M10.5 3.5a4.95 4.95 0 0 1 7 7l-7 7a4.95 4.95 0 0 1-7-7l7-7ZM7 7l7 7" />,
   emergency: <path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10ZM12 9v4M10 11h4" />,
   share: <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13" />,
+  profile: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" />,
   logout: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />,
 };
 
@@ -143,6 +144,7 @@ export default function BottomTabBar() {
               onClick={() => setMoreOpen(false)}
             />
             <SheetLink href="/share" label={t("shareWithDoctor")} icon={I.share} onClick={() => setMoreOpen(false)} />
+            <SheetLink href="/profile" label={t("profile")} icon={I.profile} onClick={() => setMoreOpen(false)} />
             <div className="my-2 h-px bg-[var(--color-border)]" />
             <form action={signOut}>
               <button

@@ -17,7 +17,7 @@ import { getLocale } from "next-intl/server";
 import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
 import { ingestDocumentBytes } from "./ingest";
-import type { RecordType, DeliveryMethod, OrderItem } from "./types";
+import type { RecordType, DeliveryMethod, OrderItem, EmergencyProfile } from "./types";
 
 // ---------- records ----------
 
@@ -141,6 +141,59 @@ export async function deleteRecord(
 
     revalidatePath("/records");
     revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "failed" };
+  }
+}
+
+// ---------- profile ----------
+
+/**
+ * Create/update the signed-in user's health & emergency profile. Empty
+ * medications / contacts / insurance / doctor are normalized away so the
+ * emergency card doesn't render blank rows. Service-role write scoped to the
+ * authenticated user id.
+ */
+export async function saveProfile(
+  p: EmergencyProfile,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    const sb = serverAdmin();
+
+    const meds = (p.medications ?? []).filter((m) => m.name?.trim());
+    const contacts = (p.emergencyContacts ?? []).filter((c) => c.name?.trim());
+    const insurance =
+      p.insurance && (p.insurance.provider?.trim() || p.insurance.policyNumber?.trim())
+        ? p.insurance
+        : null;
+    const primaryDoctor =
+      p.primaryDoctor && (p.primaryDoctor.name?.trim() || p.primaryDoctor.phone?.trim())
+        ? p.primaryDoctor
+        : null;
+
+    const { error } = await sb.from("profiles").upsert(
+      {
+        user_id: userId,
+        full_name: p.name?.trim() ?? "",
+        dob: p.dob || null,
+        blood_type: p.bloodType || null,
+        allergies: (p.allergies ?? []).map((a) => a.trim()).filter(Boolean),
+        conditions: (p.conditions ?? []).map((c) => c.trim()).filter(Boolean),
+        medications: meds,
+        emergency_contacts: contacts,
+        insurance,
+        primary_doctor: primaryDoctor,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+    if (error) throw error;
+
+    revalidatePath("/");
+    revalidatePath("/emergency");
+    revalidatePath("/profile");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "failed" };

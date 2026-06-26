@@ -25,6 +25,7 @@
     "more": "More",
     "emergencyCard": "Emergency card",
     "shareWithDoctor": "Share with doctor",
+    "profile": "Profile",
     "signOut": "Sign out"
   },
   "overview": {
@@ -180,7 +181,9 @@
     "primaryCare": "Primary care",
     "insurance": "Insurance",
     "policy": "Policy",
-    "saveAsPdf": "Save as PDF"
+    "saveAsPdf": "Save as PDF",
+    "edit": "Edit",
+    "setUpProfile": "Set up your profile"
   },
   "share": {
     "eyebrow": "For your doctor",
@@ -252,5 +255,49 @@
       "shipped": "shipped",
       "delivered": "delivered"
     }
+  },
+  "onboarding": {
+    "title": "Get started",
+    "subtitle": "A couple of quick steps to set up your vault.",
+    "progress": "{done} of {total} done",
+    "step1Title": "Add your health details",
+    "step1Desc": "Blood type, allergies, conditions — powers your emergency card.",
+    "step1Cta": "Add details",
+    "step2Title": "Upload your first report",
+    "step2Desc": "We’ll read it and start tracking your numbers.",
+    "step2Cta": "Upload"
+  },
+  "profile": {
+    "eyebrow": "Health profile",
+    "title": "Your profile",
+    "intro": "This powers your emergency card and helps Ved give better answers. Only you can see it.",
+    "aboutYou": "About you",
+    "fullName": "Full name",
+    "dob": "Date of birth",
+    "bloodType": "Blood type",
+    "bloodTypeUnknown": "Not sure",
+    "medical": "Medical",
+    "allergies": "Allergies",
+    "conditions": "Conditions",
+    "commaHint": "separate with commas",
+    "allergiesPlaceholder": "e.g. Penicillin, Peanuts",
+    "conditionsPlaceholder": "e.g. Type 2 Diabetes, Hypertension",
+    "medications": "Medications",
+    "medName": "Medicine",
+    "medDose": "Dose",
+    "medFreq": "Frequency",
+    "addMedication": "Add medication",
+    "emergencyContacts": "Emergency contacts",
+    "contactName": "Name",
+    "contactRelation": "Relation",
+    "contactPhone": "Phone",
+    "addContact": "Add contact",
+    "careInsurance": "Care & insurance",
+    "doctorName": "Doctor’s name",
+    "doctorPhone": "Doctor’s phone",
+    "insuranceProvider": "Insurance provider",
+    "policyNumber": "Policy number",
+    "saveProfile": "Save profile",
+    "saveError": "Couldn’t save. Try again."
   }
 }

@@ -25,6 +25,7 @@
     "more": "मेन्यू",
     "emergencyCard": "इमरजेंसी कार्ड",
     "shareWithDoctor": "डॉक्टर के साथ शेयर करें",
+    "profile": "प्रोफ़ाइल",
     "signOut": "लॉग आउट"
   },
   "overview": {
@@ -180,7 +181,9 @@
     "primaryCare": "मुख्य डॉक्टर",
     "insurance": "बीमा",
     "policy": "पॉलिसी",
-    "saveAsPdf": "PDF सेव करें"
+    "saveAsPdf": "PDF सेव करें",
+    "edit": "बदलें",
+    "setUpProfile": "अपनी प्रोफ़ाइल सेट करें"
   },
   "share": {
     "eyebrow": "आपके डॉक्टर के लिए",
@@ -252,5 +255,49 @@
       "shipped": "भेज दिया",
       "delivered": "पहुँच गया"
     }
+  },
+  "onboarding": {
+    "title": "शुरू करें",
+    "subtitle": "अपना वॉल्ट सेट करने के लिए कुछ आसान कदम।",
+    "progress": "{total} में से {done} पूरे",
+    "step1Title": "अपनी हेल्थ जानकारी भरें",
+    "step1Desc": "ब्लड ग्रुप, एलर्जी, बीमारियाँ — आपका इमरजेंसी कार्ड बनाती हैं।",
+    "step1Cta": "जानकारी भरें",
+    "step2Title": "अपनी पहली रिपोर्ट अपलोड करें",
+    "step2Desc": "हम इसे पढ़कर आपके आँकड़े ट्रैक करना शुरू करेंगे।",
+    "step2Cta": "अपलोड करें"
+  },
+  "profile": {
+    "eyebrow": "हेल्थ प्रोफ़ाइल",
+    "title": "आपकी प्रोफ़ाइल",
+    "intro": "यह आपके इमरजेंसी कार्ड को बनाता है और Ved को बेहतर जवाब देने में मदद करता है। इसे सिर्फ़ आप देख सकते हैं।",
+    "aboutYou": "आपके बारे में",
+    "fullName": "पूरा नाम",
+    "dob": "जन्म तिथि",
+    "bloodType": "ब्लड ग्रुप",
+    "bloodTypeUnknown": "पता नहीं",
+    "medical": "मेडिकल जानकारी",
+    "allergies": "एलर्जी",
+    "conditions": "बीमारियाँ",
+    "commaHint": "कॉमा से अलग करें",
+    "allergiesPlaceholder": "जैसे पेनिसिलिन, मूँगफली",
+    "conditionsPlaceholder": "जैसे टाइप 2 डायबिटीज़, हाई बीपी",
+    "medications": "दवाइयाँ",
+    "medName": "दवा",
+    "medDose": "खुराक",
+    "medFreq": "कब लेनी है",
+    "addMedication": "दवा जोड़ें",
+    "emergencyContacts": "इमरजेंसी संपर्क",
+    "contactName": "नाम",
+    "contactRelation": "रिश्ता",
+    "contactPhone": "फ़ोन",
+    "addContact": "संपर्क जोड़ें",
+    "careInsurance": "डॉक्टर और बीमा",
+    "doctorName": "डॉक्टर का नाम",
+    "doctorPhone": "डॉक्टर का फ़ोन",
+    "insuranceProvider": "बीमा कंपनी",
+    "policyNumber": "पॉलिसी नंबर",
+    "saveProfile": "प्रोफ़ाइल सेव करें",
+    "saveError": "सेव नहीं हो सका। दोबारा कोशिश करें।"
   }
 }
