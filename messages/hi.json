@@ -70,6 +70,25 @@
     "low": "कम",
     "high": "ज़्यादा"
   },
+  "metricLabels": {
+    "bp_sys": "ब्लड प्रेशर (सिस्टोलिक)",
+    "bp_dia": "ब्लड प्रेशर (डायस्टोलिक)",
+    "weight": "वज़न",
+    "resting_hr": "आराम की हृदय गति",
+    "sleep_hrs": "नींद",
+    "glucose": "फ़ास्टिंग ग्लूकोज़",
+    "hba1c": "HbA1c",
+    "ldl": "LDL कोलेस्ट्रॉल",
+    "hdl": "HDL कोलेस्ट्रॉल",
+    "triglycerides": "ट्राइग्लिसराइड्स",
+    "total_chol": "कुल कोलेस्ट्रॉल",
+    "vitamin_d": "विटामिन D (25-OH)",
+    "vitamin_b12": "विटामिन B12",
+    "creatinine": "सीरम क्रिएटिनिन",
+    "alt": "ALT (SGPT)",
+    "ast": "AST (SGOT)",
+    "tsh": "TSH"
+  },
   "categories": {
     "Vitals": "मुख्य संकेत",
     "Cholesterol": "कोलेस्ट्रॉल",
@@ -183,7 +202,8 @@
     "policy": "पॉलिसी",
     "saveAsPdf": "PDF सेव करें",
     "edit": "बदलें",
-    "setUpProfile": "अपनी प्रोफ़ाइल सेट करें"
+    "setUpProfile": "अपनी प्रोफ़ाइल सेट करें",
+    "scanInEmergency": "इमरजेंसी में स्कैन करें"
   },
   "share": {
     "eyebrow": "आपके डॉक्टर के लिए",

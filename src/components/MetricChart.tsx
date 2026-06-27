@@ -18,6 +18,8 @@ import {
 export default function MetricChart({ series }: { series: MetricSeries }) {
   const tStatus = useTranslations("metricStatus");
   const tMetrics = useTranslations("metrics");
+  const tLabels = useTranslations("metricLabels");
+  const label = tLabels.has(series.key) ? tLabels(series.key) : series.label;
   const v = latestValue(series);
   const animated = useCountUp(v ?? 0); // hook stays unconditional
 
@@ -43,7 +45,7 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-sm text-[var(--color-fg-muted)]">
-            {series.label}
+            {label}
           </div>
           <div className="mt-0.5 flex items-baseline gap-1">
             <span className="font-display text-2xl tabular-nums">{fmt(animated)}</span>
@@ -109,9 +111,11 @@ export default function MetricChart({ series }: { series: MetricSeries }) {
 
 function EmptyMetric({ series }: { series: MetricSeries }) {
   const tMetrics = useTranslations("metrics");
+  const tLabels = useTranslations("metricLabels");
+  const label = tLabels.has(series.key) ? tLabels(series.key) : series.label;
   return (
     <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="text-sm text-[var(--color-fg-muted)]">{series.label}</div>
+      <div className="text-sm text-[var(--color-fg-muted)]">{label}</div>
       <div className="mt-0.5 font-display text-2xl text-[var(--color-fg-dim)]">—</div>
       <div className="mt-3 h-1.5 rounded-full bg-[var(--color-surface-2)]" />
       <div className="mt-2 text-xs text-[var(--color-fg-dim)]">

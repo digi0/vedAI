@@ -1,4 +1,5 @@
 import Link from "next/link";
+import QRCode from "qrcode";
 import { getTranslations } from "next-intl/server";
 import { Card, SectionTitle, Badge } from "@/components/Card";
 import PrintButton from "@/components/PrintButton";
@@ -30,6 +31,28 @@ export default async function Emergency() {
           (365.25 * 24 * 60 * 60 * 1000),
       )
     : null;
+
+  // Compact, offline-readable emergency summary encoded into a QR — a first
+  // responder can scan it without unlocking the phone or any network. Kept in
+  // English (clinical lingua franca) regardless of the app's UI language.
+  const ec = profile.emergencyContacts?.[0];
+  const qrText = [
+    "VED AI — EMERGENCY",
+    profile.name + (age ? `, ${age}y` : ""),
+    profile.bloodType && `Blood group: ${profile.bloodType}`,
+    profile.allergies?.length && `Allergies: ${profile.allergies.join(", ")}`,
+    profile.conditions?.length && `Conditions: ${profile.conditions.join(", ")}`,
+    profile.medications?.length &&
+      `Medications: ${profile.medications.map((m) => `${m.name} ${m.dose}`.trim()).join("; ")}`,
+    ec && `Emergency contact: ${ec.name} ${ec.phone}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const qrSvg = await QRCode.toString(qrText, {
+    type: "svg",
+    margin: 1,
+    errorCorrectionLevel: "M",
+  });
 
   return (
     <div className="space-y-6">
@@ -66,12 +89,23 @@ export default async function Emergency() {
               </div>
             )}
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider text-[var(--color-fg-dim)]">
-              {t("bloodType")}
+          <div className="flex flex-col items-end gap-3">
+            <div className="text-right">
+              <div className="text-xs uppercase tracking-wider text-[var(--color-fg-dim)]">
+                {t("bloodType")}
+              </div>
+              <div className="font-display text-4xl text-[var(--color-alert)]">
+                {profile.bloodType}
+              </div>
             </div>
-            <div className="font-display text-4xl text-[var(--color-alert)]">
-              {profile.bloodType}
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className="rounded-lg bg-white p-2 shadow-sm [&_svg]:block [&_svg]:h-24 [&_svg]:w-24"
+                dangerouslySetInnerHTML={{ __html: qrSvg }}
+              />
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-fg-dim)]">
+                {t("scanInEmergency")}
+              </span>
             </div>
           </div>
         </div>

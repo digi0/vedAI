@@ -70,6 +70,25 @@
     "low": "Low",
     "high": "High"
   },
+  "metricLabels": {
+    "bp_sys": "Blood Pressure (Systolic)",
+    "bp_dia": "Blood Pressure (Diastolic)",
+    "weight": "Weight",
+    "resting_hr": "Resting Heart Rate",
+    "sleep_hrs": "Sleep",
+    "glucose": "Fasting Glucose",
+    "hba1c": "HbA1c",
+    "ldl": "LDL Cholesterol",
+    "hdl": "HDL Cholesterol",
+    "triglycerides": "Triglycerides",
+    "total_chol": "Total Cholesterol",
+    "vitamin_d": "Vitamin D (25-OH)",
+    "vitamin_b12": "Vitamin B12",
+    "creatinine": "Serum Creatinine",
+    "alt": "ALT (SGPT)",
+    "ast": "AST (SGOT)",
+    "tsh": "TSH"
+  },
   "categories": {
     "Vitals": "Vitals",
     "Cholesterol": "Cholesterol",
@@ -183,7 +202,8 @@
     "policy": "Policy",
     "saveAsPdf": "Save as PDF",
     "edit": "Edit",
-    "setUpProfile": "Set up your profile"
+    "setUpProfile": "Set up your profile",
+    "scanInEmergency": "Scan in an emergency"
   },
   "share": {
     "eyebrow": "For your doctor",
