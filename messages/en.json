@@ -180,7 +180,18 @@
     "alreadyHave": "Already have an account?",
     "newHere": "New here?",
     "signInLink": "Sign in",
-    "createLink": "Create an account"
+    "createLink": "Create an account",
+    "forgotLink": "Forgot password?",
+    "forgotTitle": "Reset your password",
+    "forgotSub": "We'll email you a link to set a new one.",
+    "sendResetBtn": "Send reset link",
+    "rememberedPassword": "Remembered it?",
+    "resetTitle": "Choose a new password",
+    "resetSub": "Pick something you haven't used before.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "resetBtn": "Save new password",
+    "linkInvalid": "That link has expired or was already used. Request a new one."
   },
   "emergency": {
     "eyebrow": "In an emergency",

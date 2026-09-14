@@ -112,6 +112,21 @@ All three run on every pull request via `.github/workflows/ci.yml`.
    - Site URL: your deployed URL (e.g. `https://vedai.vercel.app`)
    - Redirect URLs: `https://vedai.vercel.app/**` and `http://localhost:3000/**`
 
+   The wildcard covers `/auth/confirm`, where every emailed link lands.
+
+### Password reset
+
+`/forgot-password` mails a link that lands on `/auth/confirm`, which exchanges
+the token for a session server-side and forwards to `/reset-password`.
+
+The route accepts both link shapes, so the default **Reset Password** email
+template works as-is. If you customise it, either form is fine:
+
+```
+{{ .ConfirmationURL }}
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
+```
+
 ---
 
 ## Deploying to Vercel
@@ -150,7 +165,7 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=
 
 - Parser supports Smart Report 3.0 format + a generic fallback; more formats planned
 - Pharmacy fulfillment is simulated (no real pharmacy integration)
-- Email confirmation and password reset flows not yet built
+- Email confirmation flow not yet built (password reset ships; see above)
 
 ---
 

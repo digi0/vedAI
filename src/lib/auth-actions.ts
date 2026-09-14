@@ -1,18 +1,34 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "./supabase";
+import { safeNextPath } from "./auth-paths";
+import {
+  isValidEmail,
+  validateNewPassword,
+  MIN_PASSWORD_LENGTH,
+} from "./password";
 
-export type AuthResult = { error: string } | undefined;
+/** `error` renders red, `ok` renders as a confirmation. Neither means idle. */
+export type AuthResult = { error?: string; ok?: string } | undefined;
 
 function validate(email: string, password: string): string | null {
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  if (!email || !isValidEmail(email)) {
     return "Enter a valid email address.";
   }
-  if (!password || password.length < 8) {
-    return "Password must be at least 8 characters.";
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
   }
   return null;
+}
+
+/** This deployment's origin, for links we ask Supabase to mail out. */
+async function siteOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
 }
 
 export async function signUp(_prev: AuthResult, formData: FormData): Promise<AuthResult> {
@@ -64,7 +80,66 @@ export async function signIn(_prev: AuthResult, formData: FormData): Promise<Aut
   const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
 
-  redirect(next.startsWith("/") ? next : "/");
+  redirect(safeNextPath(next));
+}
+
+/**
+ * Mail a password-reset link.
+ *
+ * The reply is the same whether or not the address has an account: telling a
+ * stranger which emails are registered here would leak who uses a medical app.
+ */
+export async function requestPasswordReset(
+  _prev: AuthResult,
+  formData: FormData,
+): Promise<AuthResult> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email || !isValidEmail(email)) {
+    return { error: "Enter a valid email address." };
+  }
+
+  const sb = await supabaseServer();
+  const origin = await siteOrigin();
+  await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+  });
+
+  return { ok: "If that email has an account, a reset link is on its way." };
+}
+
+/**
+ * Set a new password for the user the recovery link signed in.
+ *
+ * Reachable only with a session, so the recovery link itself is the proof of
+ * identity — /auth/confirm establishes it before redirecting here.
+ */
+export async function updatePassword(
+  _prev: AuthResult,
+  formData: FormData,
+): Promise<AuthResult> {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirmPassword") ?? "");
+
+  const problem = validateNewPassword(password, confirm);
+  if (problem === "too_short") {
+    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+  }
+  if (problem === "mismatch") {
+    return { error: "The two passwords don't match." };
+  }
+
+  const sb = await supabaseServer();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) {
+    return { error: "That reset link has expired. Request a new one." };
+  }
+
+  const { error } = await sb.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  redirect("/");
 }
 
 export async function signOut() {
