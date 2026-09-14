@@ -13,6 +13,7 @@ A full-stack medical records application with AI-powered health insights, built 
 - **AI Insights** — Claude-powered (or local Ollama) analysis of your health data
 - **Doctor Share Links** — Generate token-gated, public share URLs for specific records
 - **Emergency Card** — Quick-access summary of critical health info
+- **Profile** — Auto-seeded from your first upload, then editable at `/profile` (blood type, allergies, conditions, medications, contacts)
 - **Pharmacy** — Medication list and order management (simulated fulfillment)
 - **Per-user data isolation** — Row-level security via Supabase RLS; no data leakage between accounts
 
@@ -78,7 +79,12 @@ Run these in order via the Supabase SQL editor or CLI:
 0003_clean_slate_and_parsed_data   parsed_data, parse_status, insights table
 0004_expand_metric_keys      lab-marker metric keys
 0005_pharmacy_allergy        allergy_class column
+0006_increment_share_view    atomic share-view counter (increment_share_view RPC)
+0007_rate_limits             shared rate-limit counters (consume_rate_limit RPC)
 ```
+
+All seven are required — `0006` creates the `increment_share_view` function that
+the share-link view counter calls at runtime.
 
 ### 4. Run locally
 
@@ -88,6 +94,16 @@ npm run dev   # http://localhost:3000
 
 Sign up → upload a lab PDF → metrics auto-populate → go to Insights → Regenerate.
 
+### 5. Checks
+
+```bash
+npm run lint        # eslint
+npm run typecheck   # tsc --noEmit
+npm test            # vitest
+```
+
+All three run on every pull request via `.github/workflows/ci.yml`.
+
 ---
 
 ## Supabase Auth Configuration (one-time)
@@ -96,6 +112,21 @@ Sign up → upload a lab PDF → metrics auto-populate → go to Insights → Re
 2. **Authentication → URL Configuration**:
    - Site URL: your deployed URL (e.g. `https://vedai.vercel.app`)
    - Redirect URLs: `https://vedai.vercel.app/**` and `http://localhost:3000/**`
+
+   The wildcard covers `/auth/confirm`, where every emailed link lands.
+
+### Password reset
+
+`/forgot-password` mails a link that lands on `/auth/confirm`, which exchanges
+the token for a session server-side and forwards to `/reset-password`.
+
+The route accepts both link shapes, so the default **Reset Password** email
+template works as-is. If you customise it, either form is fine:
+
+```
+{{ .ConfirmationURL }}
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
+```
 
 ---
 
@@ -113,6 +144,7 @@ Sign up → upload a lab PDF → metrics auto-populate → go to Insights → Re
 - **Auth guard**: `src/middleware.ts` redirects unauthenticated users to `/login`. The `/share/<token>` route is the only public route (token-gated for doctor sharing).
 - **Data isolation**: All reads use the cookie-bound Supabase client with RLS (`auth.uid() = user_id`). Writes use the service-role client but always scope `user_id` to the verified session user via `requireUserId()`.
 - **LLM switch**: `src/lib/llm.ts` → `getLLM()` returns the Anthropic provider when `ANTHROPIC_API_KEY` is set, otherwise falls back to Ollama.
+- **Rate limiting**: AI endpoints go through `consumeRateLimit()` (`src/lib/rate-limit-store.ts`), which counts in Postgres so every serverless instance shares one counter. If that store is unreachable it falls back to the in-process limiter in `src/lib/rate-limit.ts` — a weaker limit, not no limit.
 - **Vendored parser**: `medical-parser` is bundled as a tarball at `vendor/medical-parser-*.tgz` so Vercel builds are self-contained. To update: rebuild, repack, copy the new `.tgz` to `vendor/`, and bump versions in both `package.json` files.
 
 ---
@@ -133,10 +165,9 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=
 
 ## Known Gaps / Roadmap
 
-- Profile editing UI (currently auto-populated from uploads only)
 - Parser supports Smart Report 3.0 format + a generic fallback; more formats planned
 - Pharmacy fulfillment is simulated (no real pharmacy integration)
-- Email confirmation and password reset flows not yet built
+- Email confirmation flow not yet built (password reset ships; see above)
 
 ---
 

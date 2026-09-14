@@ -180,7 +180,18 @@
     "alreadyHave": "पहले से अकाउंट है?",
     "newHere": "नए हैं?",
     "signInLink": "साइन इन करें",
-    "createLink": "अकाउंट बनाएँ"
+    "createLink": "अकाउंट बनाएँ",
+    "forgotLink": "पासवर्ड भूल गए?",
+    "forgotTitle": "पासवर्ड रीसेट करें",
+    "forgotSub": "हम आपको नया पासवर्ड बनाने का लिंक ईमेल करेंगे।",
+    "sendResetBtn": "रीसेट लिंक भेजें",
+    "rememberedPassword": "याद आ गया?",
+    "resetTitle": "नया पासवर्ड चुनें",
+    "resetSub": "ऐसा पासवर्ड चुनें जो पहले इस्तेमाल न किया हो।",
+    "newPassword": "नया पासवर्ड",
+    "confirmPassword": "पासवर्ड दोबारा लिखें",
+    "resetBtn": "नया पासवर्ड सेव करें",
+    "linkInvalid": "यह लिंक खत्म हो चुका है या पहले इस्तेमाल हो चुका है। नया लिंक मंगाएँ।"
   },
   "emergency": {
     "eyebrow": "इमरजेंसी में",
@@ -221,7 +232,19 @@
     "views": "व्यूज़",
     "statusRevoked": "रद्द",
     "statusExpired": "खत्म",
-    "statusActive": "चालू"
+    "statusActive": "चालू",
+    "scopeLegend": "यह लिंक दिखाएगा",
+    "sectionRecords": "रिकॉर्ड",
+    "sectionMetrics": "मेट्रिक्स और इनसाइट्स",
+    "sectionProfile": "प्रोफ़ाइल और इमरजेंसी जानकारी",
+    "scopeEmpty": "कम से कम एक हिस्सा चुनें।",
+    "generateError": "लिंक नहीं बन पाया। दोबारा कोशिश करें।",
+    "shows": "दिखाता है",
+    "revoke": "रद्द करें",
+    "revokeConfirm": "इस लिंक को रद्द करें?",
+    "revokeYes": "हाँ, रद्द करें",
+    "revokeNo": "रहने दें",
+    "revoking": "रद्द हो रहा है…"
   },
   "pharmacy": {
     "eyebrow": "ऑर्डर और रिफिल",

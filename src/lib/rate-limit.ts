@@ -1,10 +1,19 @@
 /**
- * Lightweight in-memory rate limiter for server-side use.
+ * In-memory rate limiter, and the pure helpers shared with the database-backed
+ * one in rate-limit-store.ts.
  *
- * Uses a sliding-window counter per key. Good enough for a single-process
- * deployment (Vercel serverless, single instance per region). For multi-region
- * or high-scale deployments, swap the Map for a Redis-backed store.
+ * This counter lives in one process, so on Vercel every serverless instance
+ * keeps its own — the effective limit is (limit x live instances). Prefer
+ * consumeRateLimit() from rate-limit-store.ts, which counts in Postgres so all
+ * instances share one view. This stays as the fallback for when that store is
+ * unreachable, and as a dependency-free unit under test.
  */
+
+export type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+};
 
 interface Window {
   count: number;
@@ -14,7 +23,7 @@ interface Window {
 const store = new Map<string, Window>();
 
 // Prune old entries every 5 minutes to avoid unbounded memory growth.
-setInterval(
+const pruneTimer = setInterval(
   () => {
     const now = Date.now();
     for (const [key, w] of store) {
@@ -23,6 +32,8 @@ setInterval(
   },
   5 * 60 * 1000,
 );
+// Housekeeping should never be the reason a process stays alive.
+pruneTimer.unref?.();
 
 /**
  * Check and increment a rate-limit counter.
@@ -36,7 +47,7 @@ export function rateLimit(
   key: string,
   limit: number,
   windowMs: number,
-): { allowed: boolean; remaining: number; resetAt: number } {
+): RateLimitResult {
   const now = Date.now();
   let w = store.get(key);
 
@@ -49,4 +60,27 @@ export function rateLimit(
   const allowed = w.count <= limit;
   const remaining = Math.max(0, limit - w.count);
   return { allowed, remaining, resetAt: w.resetAt };
+}
+
+/**
+ * Shape a `consume_rate_limit()` row into a RateLimitResult.
+ *
+ * Returns null when the row isn't what we expect — a missing migration, say —
+ * so the caller can fall back rather than treat a malformed reply as a verdict.
+ */
+export function fromRpcRow(row: unknown, limit: number): RateLimitResult | null {
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+
+  if (typeof r.allowed !== "boolean") return null;
+
+  const resetAt = Date.parse(String(r.reset_at));
+  if (!Number.isFinite(resetAt)) return null;
+
+  const remaining =
+    typeof r.remaining === "number" && Number.isFinite(r.remaining)
+      ? Math.max(0, r.remaining)
+      : limit;
+
+  return { allowed: r.allowed, remaining, resetAt };
 }

@@ -1,6 +1,7 @@
 import { Card, Badge } from "@/components/Card";
 import RecordItem from "@/components/RecordItem";
 import MetricChart from "@/components/MetricChart";
+import { shareAccessState } from "@/lib/share-access";
 import {
   getShareByToken,
   bumpShareView,
@@ -19,8 +20,9 @@ export default async function DoctorShare({
 }) {
   const { token } = await params;
   const share = await getShareByToken(token);
+  const access = shareAccessState(share);
 
-  if (!share) {
+  if (!share || access === "not_found") {
     return (
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-alert-soft)] p-6">
         <h1 className="font-display text-2xl">Link not found</h1>
@@ -31,13 +33,11 @@ export default async function DoctorShare({
     );
   }
 
-  const expired = new Date(share.expiresAt) < new Date();
-  const revoked = !!share.revokedAt;
-  if (expired || revoked) {
+  if (access !== "ok") {
     return (
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-warn-soft)] p-6">
         <h1 className="font-display text-2xl">
-          Link {revoked ? "revoked" : "expired"}
+          Link {access === "revoked" ? "revoked" : "expired"}
         </h1>
         <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
           Ask the patient to generate a new share link.

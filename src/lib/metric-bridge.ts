@@ -86,11 +86,21 @@ export type MetricReading = {
  * Skips:
  *  - lab values with non-numeric values (qualitative bounds like "<10")
  *  - lab values that don't match any mapping
+ *
+ * `recordDateIso` comes from a parsed PDF, so it can be malformed. An
+ * unparseable date falls back to now rather than throwing: the record row has
+ * already been written by the time we get here, so a throw would abort
+ * ingestion half-done and lose the readings entirely.
  */
 export function bridgeLabValuesToMetrics(
   labValues: LabValue[],
   recordDateIso: string,
 ): MetricReading[] {
+  const parsedDate = new Date(recordDateIso);
+  const takenAt = (
+    Number.isFinite(parsedDate.getTime()) ? parsedDate : new Date()
+  ).toISOString();
+
   const out: MetricReading[] = [];
   const seenKeys = new Set<string>();
   for (const lv of labValues) {
@@ -100,11 +110,7 @@ export function bridgeLabValuesToMetrics(
     if (!mapping) continue;
     if (seenKeys.has(mapping.key)) continue; // first-match-wins per key
     seenKeys.add(mapping.key);
-    out.push({
-      key: mapping.key,
-      value: lv.value,
-      takenAt: new Date(recordDateIso).toISOString(),
-    });
+    out.push({ key: mapping.key, value: lv.value, takenAt });
   }
   return out;
 }

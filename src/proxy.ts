@@ -5,7 +5,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /** Auth pages — reachable when logged out; redirect away when logged in. */
-const AUTH_PATHS = ["/login", "/signup"];
+const AUTH_PATHS = ["/login", "/signup", "/forgot-password"];
 
 /** Public, unauthenticated routes (doctor share view is token-gated). */
 function isPublic(pathname: string): boolean {

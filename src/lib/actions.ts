@@ -18,7 +18,12 @@ import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
 import { ingestDocumentBytes } from "./ingest";
 import type { RecordType, DeliveryMethod, OrderItem, EmergencyProfile } from "./types";
-import { rateLimit } from "./rate-limit";
+import { consumeRateLimit } from "./rate-limit-store";
+import {
+  clampShareHours,
+  hasAnySection,
+  normalizeShareScope,
+} from "./share-scope";
 
 // ---------- records ----------
 
@@ -243,7 +248,7 @@ export async function regenerateInsights(): Promise<InsightsResult> {
   try {
     const userId = await requireUserId();
 
-    const { allowed } = rateLimit(
+    const { allowed } = await consumeRateLimit(
       `insights:${userId}`,
       INSIGHTS_RATE_LIMIT,
       INSIGHTS_RATE_WINDOW_MS,
@@ -426,21 +431,40 @@ function genToken(): string {
     .replace(/=+$/, "");
 }
 
+/**
+ * Mint a doctor share link scoped to the sections the owner picked.
+ *
+ * Both the lifetime and the section flags arrive from the browser, so both go
+ * through the rules in share-scope.ts rather than straight into the insert.
+ */
 export async function createShareToken(opts?: {
   hoursValid?: number;
+  includeRecords?: boolean;
+  includeMetrics?: boolean;
+  includeProfile?: boolean;
 }): Promise<string> {
   const userId = await requireUserId();
   const sb = serverAdmin();
+
+  const scope = normalizeShareScope(opts);
+  if (!hasAnySection(scope)) {
+    throw new Error("A share link must include at least one section.");
+  }
+
   const token = genToken();
-  const hours = opts?.hoursValid ?? 72;
+  const hours = clampShareHours(opts?.hoursValid);
   const expires = new Date(Date.now() + hours * 3600 * 1000).toISOString();
 
   const { error } = await sb.from("share_tokens").insert({
     token,
     user_id: userId,
     expires_at: expires,
+    include_records: scope.includeRecords,
+    include_metrics: scope.includeMetrics,
+    include_profile: scope.includeProfile,
   });
   if (error) throw new Error(error.message);
+  revalidatePath("/share");
   return token;
 }
 
