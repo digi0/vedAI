@@ -13,6 +13,7 @@ A full-stack medical records application with AI-powered health insights, built 
 - **AI Insights** — Claude-powered (or local Ollama) analysis of your health data
 - **Doctor Share Links** — Generate token-gated, public share URLs for specific records
 - **Emergency Card** — Quick-access summary of critical health info
+- **Profile** — Auto-seeded from your first upload, then editable at `/profile` (blood type, allergies, conditions, medications, contacts)
 - **Pharmacy** — Medication list and order management (simulated fulfillment)
 - **Per-user data isolation** — Row-level security via Supabase RLS; no data leakage between accounts
 
@@ -78,7 +79,11 @@ Run these in order via the Supabase SQL editor or CLI:
 0003_clean_slate_and_parsed_data   parsed_data, parse_status, insights table
 0004_expand_metric_keys      lab-marker metric keys
 0005_pharmacy_allergy        allergy_class column
+0006_increment_share_view    atomic share-view counter (increment_share_view RPC)
 ```
+
+All six are required — `0006` creates the `increment_share_view` function that
+the share-link view counter calls at runtime.
 
 ### 4. Run locally
 
@@ -133,7 +138,6 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=
 
 ## Known Gaps / Roadmap
 
-- Profile editing UI (currently auto-populated from uploads only)
 - Parser supports Smart Report 3.0 format + a generic fallback; more formats planned
 - Pharmacy fulfillment is simulated (no real pharmacy integration)
 - Email confirmation and password reset flows not yet built
