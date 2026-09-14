@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { SectionTitle, Card, Badge } from "@/components/Card";
 import { supabaseServer } from "@/lib/supabase";
 import ShareManager from "@/components/ShareManager";
+import RevokeShareButton from "@/components/RevokeShareButton";
+import { shareAccessState } from "@/lib/share-access";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,9 @@ export default async function SharePage() {
     createdAt: t.created_at,
     revokedAt: t.revoked_at,
     viewedCount: t.viewed_count,
+    includeRecords: t.include_records ?? true,
+    includeMetrics: t.include_metrics ?? true,
+    includeProfile: t.include_profile ?? true,
   }));
 
   return (
@@ -41,13 +46,19 @@ export default async function SharePage() {
 
       <div className="space-y-2">
         {tokens.map((tok) => {
-          const expired = new Date(tok.expiresAt) < new Date();
-          const revoked = !!tok.revokedAt;
-          const status = revoked
-            ? { tone: "alert" as const, text: t("statusRevoked") }
-            : expired
-              ? { tone: "warn" as const, text: t("statusExpired") }
-              : { tone: "ok" as const, text: t("statusActive") };
+          const access = shareAccessState(tok);
+          const status =
+            access === "revoked"
+              ? { tone: "alert" as const, text: t("statusRevoked") }
+              : access === "expired"
+                ? { tone: "warn" as const, text: t("statusExpired") }
+                : { tone: "ok" as const, text: t("statusActive") };
+
+          const shared = [
+            tok.includeRecords && t("sectionRecords"),
+            tok.includeMetrics && t("sectionMetrics"),
+            tok.includeProfile && t("sectionProfile"),
+          ].filter(Boolean) as string[];
 
           return (
             <Card key={tok.token}>
@@ -65,7 +76,11 @@ export default async function SharePage() {
                     {new Date(tok.expiresAt).toLocaleString()} · {t("views")}{" "}
                     {tok.viewedCount}
                   </div>
+                  <div className="mt-1 text-xs text-[var(--color-fg-muted)]">
+                    {t("shows")} {shared.join(" · ")}
+                  </div>
                 </div>
+                {access === "ok" && <RevokeShareButton token={tok.token} />}
               </div>
             </Card>
           );

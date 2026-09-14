@@ -221,7 +221,19 @@
     "views": "Views",
     "statusRevoked": "revoked",
     "statusExpired": "expired",
-    "statusActive": "active"
+    "statusActive": "active",
+    "scopeLegend": "This link shows",
+    "sectionRecords": "Records",
+    "sectionMetrics": "Metrics & insights",
+    "sectionProfile": "Profile & emergency info",
+    "scopeEmpty": "Pick at least one section to share.",
+    "generateError": "Couldn't create the link. Please try again.",
+    "shows": "Shows",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this link?",
+    "revokeYes": "Yes, revoke",
+    "revokeNo": "Cancel",
+    "revoking": "Revoking…"
   },
   "pharmacy": {
     "eyebrow": "Order & refill",

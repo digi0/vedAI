@@ -221,7 +221,19 @@
     "views": "व्यूज़",
     "statusRevoked": "रद्द",
     "statusExpired": "खत्म",
-    "statusActive": "चालू"
+    "statusActive": "चालू",
+    "scopeLegend": "यह लिंक दिखाएगा",
+    "sectionRecords": "रिकॉर्ड",
+    "sectionMetrics": "मेट्रिक्स और इनसाइट्स",
+    "sectionProfile": "प्रोफ़ाइल और इमरजेंसी जानकारी",
+    "scopeEmpty": "कम से कम एक हिस्सा चुनें।",
+    "generateError": "लिंक नहीं बन पाया। दोबारा कोशिश करें।",
+    "shows": "दिखाता है",
+    "revoke": "रद्द करें",
+    "revokeConfirm": "इस लिंक को रद्द करें?",
+    "revokeYes": "हाँ, रद्द करें",
+    "revokeNo": "रहने दें",
+    "revoking": "रद्द हो रहा है…"
   },
   "pharmacy": {
     "eyebrow": "ऑर्डर और रिफिल",
