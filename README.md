@@ -80,9 +80,10 @@ Run these in order via the Supabase SQL editor or CLI:
 0004_expand_metric_keys      lab-marker metric keys
 0005_pharmacy_allergy        allergy_class column
 0006_increment_share_view    atomic share-view counter (increment_share_view RPC)
+0007_rate_limits             shared rate-limit counters (consume_rate_limit RPC)
 ```
 
-All six are required — `0006` creates the `increment_share_view` function that
+All seven are required — `0006` creates the `increment_share_view` function that
 the share-link view counter calls at runtime.
 
 ### 4. Run locally
@@ -143,6 +144,7 @@ template works as-is. If you customise it, either form is fine:
 - **Auth guard**: `src/middleware.ts` redirects unauthenticated users to `/login`. The `/share/<token>` route is the only public route (token-gated for doctor sharing).
 - **Data isolation**: All reads use the cookie-bound Supabase client with RLS (`auth.uid() = user_id`). Writes use the service-role client but always scope `user_id` to the verified session user via `requireUserId()`.
 - **LLM switch**: `src/lib/llm.ts` → `getLLM()` returns the Anthropic provider when `ANTHROPIC_API_KEY` is set, otherwise falls back to Ollama.
+- **Rate limiting**: AI endpoints go through `consumeRateLimit()` (`src/lib/rate-limit-store.ts`), which counts in Postgres so every serverless instance shares one counter. If that store is unreachable it falls back to the in-process limiter in `src/lib/rate-limit.ts` — a weaker limit, not no limit.
 - **Vendored parser**: `medical-parser` is bundled as a tarball at `vendor/medical-parser-*.tgz` so Vercel builds are self-contained. To update: rebuild, repack, copy the new `.tgz` to `vendor/`, and bump versions in both `package.json` files.
 
 ---

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getLocale } from "next-intl/server";
 import { getSessionUser } from "@/lib/supabase";
 import { buildVedSystemPrompt } from "@/lib/ved";
-import { rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (!user) return new Response("Unauthorized", { status: 401 });
 
   // Rate limit per authenticated user.
-  const { allowed, remaining, resetAt } = rateLimit(
+  const { allowed, remaining, resetAt } = await consumeRateLimit(
     `ved:${user.id}`,
     RATE_LIMIT,
     RATE_WINDOW_MS,

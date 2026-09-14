@@ -18,7 +18,7 @@ import { getLLM, type PatientContext } from "./llm";
 import { getProfile, listMetrics } from "./db";
 import { ingestDocumentBytes } from "./ingest";
 import type { RecordType, DeliveryMethod, OrderItem, EmergencyProfile } from "./types";
-import { rateLimit } from "./rate-limit";
+import { consumeRateLimit } from "./rate-limit-store";
 import {
   clampShareHours,
   hasAnySection,
@@ -248,7 +248,7 @@ export async function regenerateInsights(): Promise<InsightsResult> {
   try {
     const userId = await requireUserId();
 
-    const { allowed } = rateLimit(
+    const { allowed } = await consumeRateLimit(
       `insights:${userId}`,
       INSIGHTS_RATE_LIMIT,
       INSIGHTS_RATE_WINDOW_MS,
