@@ -93,6 +93,16 @@ npm run dev   # http://localhost:3000
 
 Sign up → upload a lab PDF → metrics auto-populate → go to Insights → Regenerate.
 
+### 5. Checks
+
+```bash
+npm run lint        # eslint
+npm run typecheck   # tsc --noEmit
+npm test            # vitest
+```
+
+All three run on every pull request via `.github/workflows/ci.yml`.
+
 ---
 
 ## Supabase Auth Configuration (one-time)
